@@ -1,0 +1,110 @@
+x-zenoh-environment: &zenoh-environment
+  ZENOH_SESSION_CONFIG_URI: /etc/curtmini-piper/zenoh/local-session.json5
+  ZENOH_ROUTER_CHECK_ATTEMPTS: ${ZENOH_ROUTER_CHECK_ATTEMPTS:-30}
+
+x-zenoh-volume: &zenoh-volume
+  type: bind
+  source: ./config/zenoh/local-session.json5
+  target: /etc/curtmini-piper/zenoh/local-session.json5
+  read_only: true
+
+x-zenoh-dependency: &zenoh-dependency
+  zenoh-router:
+    condition: service_started
+
+services:
+  zenoh-router:
+    image: ${IMAGE_PREFIX:-curtmini-piper}-zenoh-router:${ROS_DISTRO:-jazzy}-zenoh
+    build:
+      context: .
+      dockerfile: images/zenoh-router/Dockerfile
+      target: runtime
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-jazzy}
+        ROS_IMAGE: ${ROS_IMAGE:-ros:${ROS_DISTRO:-jazzy}-ros-base-noble}
+        OCI_SOURCE: ${OCI_SOURCE:-}
+        OCI_REVISION: ${OCI_REVISION:-unknown}
+    network_mode: host
+    init: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+      RMW_IMPLEMENTATION: rmw_zenoh_cpp
+      ZENOH_ROUTER_CONFIG_URI: /etc/curtmini-piper/zenoh/router.json5
+    volumes:
+      - type: bind
+        source: ./config/zenoh/router.json5
+        target: /etc/curtmini-piper/zenoh/router.json5
+        read_only: true
+    stop_grace_period: 10s
+
+  gz-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  real-bringup:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveit-rviz-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveit-rviz-hardware:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveitpy-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveitpy-hardware:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  keyboard-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  keyboard-hardware:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  ros-cli:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume

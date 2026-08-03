@@ -1,0 +1,63 @@
+x-cyclonedds-environment: &cyclonedds-environment
+  CYCLONEDDS_URI: file:///etc/curtmini-piper/cyclonedds.xml
+
+x-cyclonedds-volume: &cyclonedds-volume
+  type: bind
+  source: ./config/cyclonedds/cyclonedds.xml
+  target: /etc/curtmini-piper/cyclonedds.xml
+  read_only: true
+
+services:
+  gz-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  real-bringup:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveit-rviz-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveit-rviz-hardware:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveitpy-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveitpy-hardware:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  keyboard-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  keyboard-hardware:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  ros-cli:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume

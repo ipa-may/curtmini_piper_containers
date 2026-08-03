@@ -1,0 +1,32 @@
+services:
+  gz-sim:
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command:
+      - ros2
+      - launch
+      - curtmini_piper_gz_sim
+      - simulation.launch.py
+      - gui:=true
+      - use_rviz:=false
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+
+  moveit-rviz-sim:
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+  moveit-rviz-hardware:
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw

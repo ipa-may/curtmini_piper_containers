@@ -1,0 +1,286 @@
+name: curtmini-piper
+
+x-ros-environment: &ros-environment
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+  RMW_IMPLEMENTATION: rmw_${RMW:-cyclonedds}_cpp
+
+x-build-args: &build-args
+  ROS_DISTRO: ${ROS_DISTRO:-jazzy}
+  ROS_IMAGE: ${ROS_IMAGE:-ros:${ROS_DISTRO:-jazzy}-ros-base-noble}
+  RMW: ${RMW:-cyclonedds}
+  LOCK_DIR: locks/${ROS_DISTRO:-jazzy}
+  OCI_SOURCE: ${OCI_SOURCE:-}
+  OCI_REVISION: ${OCI_REVISION:-unknown}
+
+services:
+  gz-sim:
+    profiles: [simulation]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-gazebo:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/gazebo/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - ros2
+      - launch
+      - curtmini_piper_gz_sim
+      - simulation.launch.py
+      - gui:=false
+      - use_rviz:=false
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+    stop_grace_period: 20s
+
+  real-bringup:
+    profiles: [hardware]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/hardware/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    devices:
+      - ${LPMS_DEVICE:-/dev/ttyLPMSCA3D00510053}:${LPMS_DEVICE:-/dev/ttyLPMSCA3D00510053}
+      - ${JOYSTICK_DEVICE:-/dev/input/js0}:${JOYSTICK_DEVICE:-/dev/input/js0}
+    device_cgroup_rules:
+      - "c 189:* rmw"
+    command:
+      - ros2
+      - launch
+      - curtmini_piper_bringup
+      - bringup.launch.py
+      - can_port:=${CAN_PORT:-can0}
+      - start_joystick:=${START_JOYSTICK:-true}
+      - start_imu:=${START_IMU:-true}
+      - use_rviz:=false
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+    stop_grace_period: 20s
+
+  moveit-rviz-sim:
+    profiles: [simulation]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/moveit-rviz/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - /opt/container/wait_for_ros.sh
+      - action
+      - /move_action
+      - "120"
+      - --
+      - ros2
+      - launch
+      - curtmini_piper_moveit_config
+      - moveit_rviz.launch.py
+      - use_sim_time:=true
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+
+  moveit-rviz-hardware:
+    profiles: [hardware]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/moveit-rviz/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - /opt/container/wait_for_ros.sh
+      - action
+      - /move_action
+      - "120"
+      - --
+      - ros2
+      - launch
+      - curtmini_piper_moveit_config
+      - moveit_rviz.launch.py
+      - use_sim_time:=false
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+
+  moveitpy-sim:
+    profiles: [simulation-tools]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/moveitpy/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - /opt/container/wait_for_ros.sh
+      - topic
+      - /joint_states
+      - "120"
+      - --
+      - ros2
+      - run
+      - curtmini_piper_motion_examples
+      - moveit_goal
+      - --ros-args
+      - -p
+      - controller_mode:=simulation
+      - -p
+      - use_sim_time:=true
+      - -p
+      - plan_only:=${MOVEIT_PLAN_ONLY:-true}
+
+  moveitpy-hardware:
+    profiles: [hardware-tools]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/moveitpy/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+      additional_contexts:
+        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
+        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - /opt/container/wait_for_ros.sh
+      - topic
+      - /joint_states
+      - "120"
+      - --
+      - ros2
+      - run
+      - curtmini_piper_motion_examples
+      - moveit_goal
+      - --ros-args
+      - -p
+      - controller_mode:=hardware
+      - -p
+      - use_sim_time:=false
+      - -p
+      - plan_only:=${MOVEIT_PLAN_ONLY:-true}
+
+  keyboard-sim:
+    profiles: [simulation-tools]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/teleop/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+    network_mode: host
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      <<: *ros-environment
+    command:
+      - ros2
+      - run
+      - teleop_twist_keyboard
+      - teleop_twist_keyboard
+      - --ros-args
+      - -p
+      - stamped:=true
+      - -p
+      - frame_id:=base_link
+      - -r
+      - cmd_vel:=/base_controller/cmd_vel
+
+  keyboard-hardware:
+    profiles: [hardware-tools]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/teleop/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+    network_mode: host
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      <<: *ros-environment
+    command:
+      - ros2
+      - run
+      - teleop_twist_keyboard
+      - teleop_twist_keyboard
+      - --ros-args
+      - -p
+      - stamped:=true
+      - -p
+      - frame_id:=base_link
+      - -r
+      - cmd_vel:=/cmd_vel
+
+  ros-cli:
+    profiles: [tools]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/teleop/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+    network_mode: host
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      <<: *ros-environment
+    command: [bash]

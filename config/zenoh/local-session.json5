@@ -1,0 +1,29 @@
+{
+  mode: "peer",
+  connect: {
+    endpoints: ["tcp/127.0.0.1:7447"],
+    exit_on_failure: false,
+  },
+  listen: {
+    endpoints: ["tcp/127.0.0.1:0"],
+  },
+  scouting: {
+    multicast: {
+      enabled: false,
+    },
+    gossip: {
+      enabled: true,
+      target: { peer: ["router"] },
+      autoconnect: { peer: ["router"] },
+    },
+  },
+  timestamping: {
+    enabled: true,
+    drop_future_timestamp: false,
+  },
+  transport: {
+    shared_memory: {
+      enabled: false,
+    },
+  },
+}
