@@ -12,6 +12,32 @@ x-build-args: &build-args
   OCI_SOURCE: ${OCI_SOURCE:-}
   OCI_REVISION: ${OCI_REVISION:-unknown}
 
+x-moveit-rviz: &moveit-rviz
+  image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  build:
+    context: .
+    dockerfile: images/moveit-rviz/Dockerfile
+    target: runtime
+    args:
+      <<: *build-args
+  network_mode: host
+  init: true
+  environment:
+    <<: *ros-environment
+
+x-moveitpy: &moveitpy
+  image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  build:
+    context: .
+    dockerfile: images/moveitpy/Dockerfile
+    target: runtime
+    args:
+      <<: *build-args
+  network_mode: host
+  init: true
+  environment:
+    <<: *ros-environment
+
 services:
   gz-sim:
     profiles: [simulation]
@@ -22,9 +48,6 @@ services:
       target: runtime
       args:
         <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
     network_mode: host
     init: true
     environment:
@@ -51,9 +74,6 @@ services:
       target: runtime
       args:
         <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
     network_mode: host
     init: true
     environment:
@@ -81,21 +101,8 @@ services:
     stop_grace_period: 20s
 
   moveit-rviz-sim:
+    <<: *moveit-rviz
     profiles: [simulation]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/moveit-rviz/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
-    network_mode: host
-    init: true
-    environment:
-      <<: *ros-environment
     command:
       - /opt/container/wait_for_ros.sh
       - action
@@ -113,21 +120,8 @@ services:
       - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
 
   moveit-rviz-hardware:
+    <<: *moveit-rviz
     profiles: [hardware]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/moveit-rviz/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
-    network_mode: host
-    init: true
-    environment:
-      <<: *ros-environment
     command:
       - /opt/container/wait_for_ros.sh
       - action
@@ -145,21 +139,8 @@ services:
       - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
 
   moveitpy-sim:
+    <<: *moveitpy
     profiles: [simulation-tools]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/moveitpy/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
-    network_mode: host
-    init: true
-    environment:
-      <<: *ros-environment
     command:
       - /opt/container/wait_for_ros.sh
       - topic
@@ -179,21 +160,8 @@ services:
       - plan_only:=${MOVEIT_PLAN_ONLY:-true}
 
   moveitpy-hardware:
+    <<: *moveitpy
     profiles: [hardware-tools]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/moveitpy/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-      additional_contexts:
-        curtmini_piper_source: ${CURTMINI_PIPER_SOURCE:-../curtmini_piper}
-        curt_mini_source: ${CURT_MINI_SOURCE:-../curt_mini}
-    network_mode: host
-    init: true
-    environment:
-      <<: *ros-environment
     command:
       - /opt/container/wait_for_ros.sh
       - topic

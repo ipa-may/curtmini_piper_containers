@@ -28,7 +28,7 @@ import yaml
 repo_root = Path(sys.argv[1])
 workspace_src = Path(sys.argv[2])
 lock_dir = Path(sys.argv[3])
-lock_files = sorted(lock_dir.glob("*.repos"))
+lock_files = [lock_dir / "dependencies.repos"]
 
 for lock_file in lock_files:
     data = yaml.safe_load(lock_file.read_text())

@@ -19,7 +19,7 @@ for distro_dir in sorted((repo_root / "locks").iterdir()):
     if not distro_dir.is_dir():
         continue
     versions = {}
-    lock_files = sorted(distro_dir.glob("*.repos"))
+    lock_files = [distro_dir / "dependencies.repos"]
     if not lock_files:
         raise SystemExit(f"No repository locks in {distro_dir}")
     for lock_file in lock_files:
@@ -27,19 +27,24 @@ for distro_dir in sorted((repo_root / "locks").iterdir()):
         repositories = data.get("repositories", {})
         if not repositories:
             raise SystemExit(f"No repositories in {lock_file}")
+        required = {"curt_mini", "curtmini_piper", "curtmini_piper_gz_sim",
+                    "agx_arm_urdf", "agx_arm_ros", "candle_ros2", "openzenros2"}
+        if missing := required - repositories.keys():
+            raise SystemExit(f"{lock_file}: missing source repositories {sorted(missing)}")
         for name, entry in repositories.items():
             url = entry.get("url", "")
             version = entry.get("version", "")
             if not url.startswith("https://"):
                 raise SystemExit(f"{lock_file}: {name} does not use HTTPS")
-            if not sha_pattern.fullmatch(version):
-                raise SystemExit(f"{lock_file}: {name} is not pinned to a SHA")
-            if name in versions and versions[name] != version:
+            if not isinstance(version, str) or not version.strip():
+                raise SystemExit(f"{lock_file}: {name} needs a Git revision")
+            source = (url, version)
+            if name in versions and versions[name] != source:
                 raise SystemExit(
                     f"Inconsistent {name} versions in {distro_dir.name}: "
-                    f"{versions[name]} and {version}"
+                    f"{versions[name]} and {source}"
                 )
-            versions[name] = version
+            versions[name] = source
 
     python_lock = {}
     python_lock_file = distro_dir / "hardware-python.env"
@@ -56,7 +61,10 @@ for distro_dir in sorted((repo_root / "locks").iterdir()):
 required_stages = ("base", "dependencies", "builder", "test", "runtime")
 for dockerfile in sorted(repo_root.glob("images/*/Dockerfile")):
     text = dockerfile.read_text()
-    for stage in required_stages:
+    if re.search(r"COPY --from=(curt_mini_source|curtmini_piper_source)", text):
+        raise SystemExit(f"{dockerfile}: source repositories must come from locks")
+    stages = ("runtime",) if dockerfile.parent.name == "workspace" else required_stages
+    for stage in stages:
         if not re.search(rf"\bAS {stage}\b", text, re.IGNORECASE):
             raise SystemExit(f"{dockerfile}: missing {stage} stage")
 

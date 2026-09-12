@@ -46,33 +46,31 @@ RUN apt-get update \
 
 WORKDIR /opt/ws
 
-COPY ${LOCK_DIR}/gazebo.repos /tmp/dependencies.lock.repos
+COPY ${LOCK_DIR}/dependencies.repos /tmp/dependencies.lock.repos
 RUN mkdir -p /opt/ws/src \
     && vcs import --recursive /opt/ws/src < /tmp/dependencies.lock.repos
-
-COPY --from=curt_mini_source / /opt/ws/src/curt_mini
-COPY --from=curtmini_piper_source / /opt/ws/src/curtmini_piper
-
-# curt_mini only consumes ipa_ros2_control for real-hardware bringup.
-RUN sed -i '\|<depend>ipa_ros2_control</depend>|d' \
-      /opt/ws/src/curt_mini/curt_mini/package.xml
 
 RUN apt-get update \
     && rosdep update --rosdistro "${ROS_DISTRO}" \
     && rosdep install \
       --from-paths \
         /opt/ws/src/agx_arm_urdf \
-        /opt/ws/src/curt_mini/curt_mini \
+        /opt/ws/src/curt_mini/curt_mini_description \
+        /opt/ws/src/curt_mini/curt_mini_teleop \
         /opt/ws/src/curtmini_piper/curtmini_piper_description \
         /opt/ws/src/curtmini_piper/curtmini_piper_moveit_config \
-        /opt/ws/src/curtmini_piper/curtmini_piper_gz_sim \
+        /opt/ws/src/curtmini_piper_gz_sim \
       --ignore-src \
       --rosdistro "${ROS_DISTRO}" \
-      --skip-keys "candle_ros2 ipa_ros2_control warehouse_ros_mongo" \
+      --skip-keys "candle_ros2 warehouse_ros_mongo" \
       -r -y \
     && rm -rf /var/lib/apt/lists/*
 
 FROM dependencies AS builder
+
+# Gazebo may need more than the default five seconds to start physics updates.
+RUN sed -i "/'--controller-manager-timeout',/i\            '--switch-timeout', '60'," \
+      /opt/ws/src/curtmini_piper_gz_sim/launch/simulation.launch.py
 
 RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
     && colcon build \
@@ -80,7 +78,8 @@ RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
       --cmake-args -DCMAKE_BUILD_TYPE=Release \
       --packages-select \
         agx_arm_urdf \
-        curt_mini \
+        curt_mini_description \
+        curt_mini_teleop \
         curtmini_piper_description \
         curtmini_piper_moveit_config \
         curtmini_piper_gz_sim

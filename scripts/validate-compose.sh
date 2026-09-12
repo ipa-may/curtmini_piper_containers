@@ -11,7 +11,13 @@ for ros_distro in jazzy kilted; do
       docker compose \
         -f compose.yaml \
         -f "compose.${rmw}.yaml" \
-        config --quiet
-    echo "Validated ${ros_distro}/${rmw}"
+        --profile "*" config --quiet
+    ROS_DISTRO="${ros_distro}" RMW="${rmw}" \
+      docker compose \
+        -f compose.yaml \
+        -f "compose.${rmw}.yaml" \
+        -f compose.workspace.yaml \
+        --profile "*" config --quiet
+    echo "Validated ${ros_distro}/${rmw}, including local workspace"
   done
 done

@@ -50,7 +50,7 @@ RUN apt-get update \
 
 WORKDIR /opt/ws
 
-COPY ${LOCK_DIR}/hardware.repos /tmp/dependencies.lock.repos
+COPY ${LOCK_DIR}/dependencies.repos /tmp/dependencies.lock.repos
 RUN mkdir -p /opt/ws/src \
     && vcs import --recursive /opt/ws/src < /tmp/dependencies.lock.repos
 
@@ -62,9 +62,6 @@ RUN source /tmp/python.lock.env \
       --target /opt/ws/python \
       "git+${PYAGXARM_URL}@${PYAGXARM_REF}"
 
-COPY --from=curt_mini_source / /opt/ws/src/curt_mini
-COPY --from=curtmini_piper_source / /opt/ws/src/curtmini_piper
-
 RUN apt-get update \
     && rosdep update --rosdistro "${ROS_DISTRO}" \
     && rosdep install \
@@ -75,6 +72,8 @@ RUN apt-get update \
         /opt/ws/src/openzenros2 \
         /opt/ws/src/curt_mini/ipa_ros2_control \
         /opt/ws/src/curt_mini/curt_mini \
+        /opt/ws/src/curt_mini/curt_mini_description \
+        /opt/ws/src/curt_mini/curt_mini_teleop \
         /opt/ws/src/curtmini_piper/curtmini_piper_description \
         /opt/ws/src/curtmini_piper/curtmini_piper_moveit_config \
         /opt/ws/src/curtmini_piper/curtmini_piper_bringup \

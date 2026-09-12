@@ -4,6 +4,10 @@ Independent ROS 2 container images and Compose services for the Curt Mini with
 a Piper arm. The repository supports ROS distro and middleware variants from
 one source branch. Nav2 and RealSense are intentionally outside its scope.
 
+See [Compose file structure](README_compose_files.md) for how the base file and
+optional overlays are combined, and [Compose services](README_compose_service.md)
+for the available services and their roles.
+
 ## Variant model
 
 Set the variant with environment variables:
@@ -31,25 +35,24 @@ Images are tagged `<distro>-<rmw>`, for example:
 | `curtmini-piper-teleop:jazzy-cyclonedds` | Keyboard teleoperation and ROS CLI |
 | `curtmini-piper-zenoh-router:jazzy-zenoh` | Robot-side Zenoh router |
 
-Every Dockerfile is independently buildable and contains `base`,
-`dependencies`, `builder`, `test`, and `runtime` stages. Published images use
-`runtime`; CI can target `test`.
+Each application Dockerfile contains `base`, `dependencies`, `builder`, `test`,
+and `runtime` stages. Published images use `runtime`; CI can target `test`.
+The workspace image is a development environment and has a single stage.
 
-The four variants do not require long-lived branches. Future CI should build a
-matrix from `main`; use distro release branches only if source compatibility
-eventually requires real divergence.
+The distro and middleware variants do not require long-lived branches. CI can
+build a matrix from `main`; use release branches only if compatibility requires
+real divergence.
 
 ## Source inputs
 
-Docker BuildKit injects the two actively developed repositories as named
-contexts. Defaults assume sibling checkouts:
+All Git source dependencies are listed once per distro in
+`locks/<distro>/dependencies.repos`. Every application image and the workspace
+builder reads this manifest. Images retain their individual package build
+selections. Python dependency revisions remain in
+`locks/<distro>/hardware-python.env` because they are installed with pip.
 
-```text
-src/
-|-- curt_mini/
-|-- curtmini_piper/
-`-- curtmini_piper_containers/
-```
+Git revisions may be branches, tags, or commit SHAs. Use development branches
+for now and release tags after the packages reach version `0.1.0`.
 
 Create local configuration:
 
@@ -57,25 +60,17 @@ Create local configuration:
 cp .env.example .env
 ```
 
-Local directories, Git URLs, tags, and commit SHAs are accepted:
+`.env` selects the ROS distro, middleware, image names, and runtime settings.
+It does not select source repositories. Host workspace checkouts and
+`project-docs/dependencies.repos` are independent of the container builds;
+no sibling checkout layout is required.
 
-```bash
-CURTMINI_PIPER_SOURCE=../curtmini_piper \
-CURT_MINI_SOURCE=../curt_mini \
-docker compose -f compose.yaml -f compose.cyclonedds.yaml build gz-sim
-```
+To change source code used by an image, update its manifest revision and rebuild
+the affected image. To test unpublished changes, use the workspace override
+below.
 
-For a public release, set both variables to public Git contexts:
-
-```bash
-CURTMINI_PIPER_SOURCE=https://github.com/ORG/curtmini_piper.git#v1.0.0
-CURT_MINI_SOURCE=https://github.com/ORG/curt_mini.git#COMMIT_SHA
-```
-
-Other repositories and `pyAgxArm` are pinned under `locks/<distro>/`.
-The Kilted locks currently mirror the Jazzy upstream revisions and are a
-compatibility baseline until the complete Kilted build and runtime matrix has
-passed.
+Kilted remains a compatibility baseline until its full build and runtime matrix
+has passed. Branch references, base image tags, and apt packages can change.
 
 ## Build
 
@@ -96,12 +91,44 @@ docker buildx build \
   --build-arg RMW=cyclonedds \
   --build-arg LOCK_DIR=locks/jazzy \
   --target test \
-  --build-context curtmini_piper_source=../curtmini_piper \
-  --build-context curt_mini_source=../curt_mini \
   -f images/gazebo/Dockerfile .
 ```
 
 `ROS_IMAGE` can override the derived `ros:<distro>-ros-base-noble` base image.
+
+## Local simulation workspace
+
+`compose.workspace.yaml` mounts the local repositories into a
+`workspace-builder`. It runs `colcon build` and shares the resulting install
+volume with Gazebo, RViz, and MoveItPy.
+
+Set the checkout paths in `.env` if they differ from `.env.example`, then build
+the development image once and compile the workspace:
+
+```bash
+docker compose -f compose.yaml -f compose.workspace.yaml build workspace-builder
+docker compose -f compose.yaml -f compose.workspace.yaml run --rm workspace-builder
+```
+
+Run Gazebo, then start RViz in another terminal:
+
+```bash
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml -f compose.gui.yaml \
+  up gz-sim
+
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml -f compose.gui.yaml \
+  run --rm moveit-rviz-sim
+
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml run --rm moveitpy-sim
+```
+
+After source or checkout-path changes, rerun `workspace-builder`; no image
+rebuild is needed. Rebuild the workspace image only when its ROS or system
+dependencies change. Use `down -v` with the workspace overlay when dependency
+revisions change or stale build output must be removed.
 
 ## CycloneDDS
 
@@ -270,3 +297,10 @@ Review and commit lock changes explicitly. A later GitHub Actions workflow can
 use a distro, RMW, and image matrix, with headless Gazebo, MoveIt RViz launch,
 MoveItPy, and teleop tests. Hardware execution still requires a self-hosted
 runner connected to the robot.
+
+## Curt Mini package split
+
+RViz and MoveItPy build `curt_mini_description`; Gazebo also builds
+`curt_mini_teleop`. Hardware bringup builds `curt_mini`. Description and
+teleoperation users therefore do not depend on `ipa_ros2_control`, and the
+Dockerfiles no longer edit the package manifest during a build.

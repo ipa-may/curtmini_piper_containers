@@ -1,0 +1,29 @@
+repositories:
+  agx_arm_urdf:
+    type: git
+    url: https://github.com/ipa-may/agx_arm_urdf.git
+    version: 0b84e6f0c793ae353f0efd7b731268dfc5f7b3e3
+  curt_mini:
+    type: git
+    url: https://github.com/ipa-may/curt_mini.git
+    version: 824639f8c442d7955a935f3cde64f56dbe21caf8
+  curtmini_piper:
+    type: git
+    url: https://github.com/ipa-may/curtmini_piper.git
+    version: 5cbcccac1103924a4e835b985b3311f72eab3f49
+  curtmini_piper_gz_sim:
+    type: git
+    url: https://github.com/ipa-may/curtmini_piper_gz_sim.git
+    version: 7be00b5be3485e0c33d82e87531fbbdf5a48bb72
+  agx_arm_ros:
+    type: git
+    url: https://github.com/ipa-may/agx_arm_ros.git
+    version: 9d74710fd2aa18e2aa7d7945717cc95d6c16fcf1
+  candle_ros2:
+    type: git
+    url: https://github.com/mabrobotics/candle_ros2.git
+    version: 08835c6f15944f64b6f7efabc7a87833d09be6bc
+  openzenros2:
+    type: git
+    url: https://github.com/ipa323/openzenros2.git
+    version: 52ed327ef654abb92258fad60904a35c87778345

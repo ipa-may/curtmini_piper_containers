@@ -46,29 +46,22 @@ RUN apt-get update \
 
 WORKDIR /opt/ws
 
-COPY ${LOCK_DIR}/rviz.repos /tmp/dependencies.lock.repos
+COPY ${LOCK_DIR}/dependencies.repos /tmp/dependencies.lock.repos
 RUN mkdir -p /opt/ws/src \
     && vcs import --recursive /opt/ws/src < /tmp/dependencies.lock.repos
-
-COPY --from=curt_mini_source / /opt/ws/src/curt_mini
-COPY --from=curtmini_piper_source / /opt/ws/src/curtmini_piper
-
-# RViz consumes the robot description, not the real-hardware base driver.
-RUN sed -i '\|<depend>ipa_ros2_control</depend>|d' \
-      /opt/ws/src/curt_mini/curt_mini/package.xml
 
 RUN apt-get update \
     && rosdep update --rosdistro "${ROS_DISTRO}" \
     && rosdep install \
       --from-paths \
         /opt/ws/src/agx_arm_urdf \
-        /opt/ws/src/curt_mini/curt_mini \
+        /opt/ws/src/curt_mini/curt_mini_description \
         /opt/ws/src/curtmini_piper/curtmini_piper_description \
         /opt/ws/src/curtmini_piper/curtmini_piper_moveit_config \
       --ignore-src \
       --rosdistro "${ROS_DISTRO}" \
       --skip-keys \
-        "ament_python candle_ros2 gz_ros2_control ipa_ros2_control warehouse_ros_mongo" \
+        "ament_python candle_ros2 gz_ros2_control warehouse_ros_mongo" \
       -r -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -80,7 +73,7 @@ RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
       --cmake-args -DCMAKE_BUILD_TYPE=Release \
       --packages-select \
         agx_arm_urdf \
-        curt_mini \
+        curt_mini_description \
         curtmini_piper_description \
         curtmini_piper_moveit_config
 
