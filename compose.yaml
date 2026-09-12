@@ -38,6 +38,21 @@ x-moveitpy: &moveitpy
   environment:
     <<: *ros-environment
 
+x-keyboard-teleop: &keyboard-teleop
+  image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  build:
+    context: .
+    dockerfile: images/teleop/Dockerfile
+    target: runtime
+    args:
+      <<: *build-args
+  network_mode: host
+  init: true
+  stdin_open: true
+  tty: true
+  environment:
+    <<: *ros-environment
+
 services:
   gz-sim:
     profiles: [simulation]
@@ -180,21 +195,9 @@ services:
       - -p
       - plan_only:=${MOVEIT_PLAN_ONLY:-true}
 
-  keyboard-sim:
+  keyboard-teleop-sim:
+    <<: *keyboard-teleop
     profiles: [simulation-tools]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/teleop/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-    network_mode: host
-    init: true
-    stdin_open: true
-    tty: true
-    environment:
-      <<: *ros-environment
     command:
       - ros2
       - run
@@ -208,21 +211,9 @@ services:
       - -r
       - cmd_vel:=/base_controller/cmd_vel
 
-  keyboard-hardware:
+  keyboard-teleop-hardware:
+    <<: *keyboard-teleop
     profiles: [hardware-tools]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
-    build:
-      context: .
-      dockerfile: images/teleop/Dockerfile
-      target: runtime
-      args:
-        <<: *build-args
-    network_mode: host
-    init: true
-    stdin_open: true
-    tty: true
-    environment:
-      <<: *ros-environment
     command:
       - ros2
       - run

@@ -85,7 +85,7 @@ services:
     volumes:
       - *zenoh-volume
 
-  keyboard-sim:
+  keyboard-teleop-sim:
     depends_on:
       <<: *zenoh-dependency
     environment:
@@ -93,7 +93,7 @@ services:
     volumes:
       - *zenoh-volume
 
-  keyboard-hardware:
+  keyboard-teleop-hardware:
     depends_on:
       <<: *zenoh-dependency
     environment:

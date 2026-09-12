@@ -22,7 +22,7 @@ services=(
   real-bringup
   moveit-rviz-sim
   moveitpy-sim
-  keyboard-sim
+  keyboard-teleop-sim
 )
 
 if [[ "${RMW}" == "zenoh" ]]; then

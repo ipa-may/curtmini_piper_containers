@@ -11,8 +11,8 @@ add development and middleware services.
 | `moveit-rviz-hardware` | `hardware` | RViz client for `real-bringup` |
 | `moveitpy-sim` | `simulation-tools` | MoveItPy example for simulation |
 | `moveitpy-hardware` | `hardware-tools` | MoveItPy example for the real robot |
-| `keyboard-sim` | `simulation-tools` | Keyboard control for the simulated base |
-| `keyboard-hardware` | `hardware-tools` | Keyboard control through the hardware command mux |
+| `keyboard-teleop-sim` | `simulation-tools` | Keyboard control for the simulated base |
+| `keyboard-teleop-hardware` | `hardware-tools` | Keyboard control through the hardware command mux |
 | `ros-cli` | `tools` | Interactive ROS shell |
 | `workspace-builder` | `workspace` | Builds mounted local sources into the shared install volume |
 | `zenoh-router` | none | Local Zenoh router added by `compose.zenoh.yaml` |
@@ -54,6 +54,6 @@ Start the appropriate backend before its RViz, MoveItPy, or keyboard client.
 
 ## Keyboard services
 
-`keyboard-sim` publishes to `/base_controller/cmd_vel`.
-`keyboard-hardware` publishes to `/cmd_vel`, which hardware bringup processes
+`keyboard-teleop-sim` publishes to `/base_controller/cmd_vel`.
+`keyboard-teleop-hardware` publishes to `/cmd_vel`, which hardware bringup processes
 through `twist_mux`.

@@ -266,8 +266,8 @@ Set `MOVEIT_PLAN_ONLY=false` to execute the example trajectory.
 Run keyboard control against the active robot:
 
 ```bash
-docker compose -f compose.yaml -f "compose.${RMW}.yaml" run --rm keyboard-sim
-docker compose -f compose.yaml -f "compose.${RMW}.yaml" run --rm keyboard-hardware
+docker compose -f compose.yaml -f "compose.${RMW}.yaml" run --rm keyboard-teleop-sim
+docker compose -f compose.yaml -f "compose.${RMW}.yaml" run --rm keyboard-teleop-hardware
 ```
 
 Simulation publishes stamped commands to `/base_controller/cmd_vel`. Hardware

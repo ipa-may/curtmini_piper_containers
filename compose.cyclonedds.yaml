@@ -44,13 +44,13 @@ services:
     volumes:
       - *cyclonedds-volume
 
-  keyboard-sim:
+  keyboard-teleop-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
-  keyboard-hardware:
+  keyboard-teleop-hardware:
     environment:
       <<: *cyclonedds-environment
     volumes:
