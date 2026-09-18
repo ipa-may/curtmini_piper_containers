@@ -5,4 +5,5 @@ libbluetooth3
 libusb-1.0-0
 python3-can
 python3-numpy
+python3-scipy
 python3-yaml

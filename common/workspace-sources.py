@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import yaml
 
-local = {"curt_mini", "curtmini_piper", "curtmini_piper_gz_sim"}
+local = {"agx_arm_urdf", "curt_mini", "curtmini_piper", "curtmini_piper_gz_sim"}
 manifest = yaml.safe_load(Path("/opt/locks/dependencies.repos").read_text())
 repositories = {key: value for key, value in manifest["repositories"].items()
                 if key not in local}

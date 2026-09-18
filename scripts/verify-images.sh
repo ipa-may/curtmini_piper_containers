@@ -31,6 +31,9 @@ docker run --rm "${image_prefix}-hardware:${image_tag}" \
   bash -c "test -f /opt/ws/install/lib/libipa_ros2_control.so"
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   ros2 pkg prefix agx_arm_ctrl
+# Import the driver and its dependencies without starting a node or accessing CAN.
+docker run --rm "${image_prefix}-hardware:${image_tag}" \
+  python3 -c "import agx_arm_ctrl.agx_arm_ctrl_single_node"
 docker run --rm "${image_prefix}-moveit-rviz:${image_tag}" \
   ros2 pkg prefix curtmini_piper_moveit_config
 docker run --rm "${image_prefix}-moveitpy:${image_tag}" \

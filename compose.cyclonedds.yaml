@@ -20,6 +20,12 @@ services:
     volumes:
       - *cyclonedds-volume
 
+  piper-bringup:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
   moveit-rviz-sim:
     environment:
       <<: *cyclonedds-environment

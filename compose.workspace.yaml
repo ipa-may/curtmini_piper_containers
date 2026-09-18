@@ -36,6 +36,11 @@ services:
         read_only: true
         bind: {create_host_path: false}
       - type: bind
+        source: ${AGX_ARM_URDF_SOURCE:-../rob4_fraunhofer_ws/src/piper_driver/agx_arm_urdf}
+        target: /opt/ws/src/agx_arm_urdf
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
         source: ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_gz_sim}
         target: /opt/ws/src/curtmini_piper_gz_sim
         read_only: true
@@ -58,8 +63,24 @@ services:
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]
+  real-bringup:
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  piper-bringup:
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  moveit-rviz-hardware:
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
   moveitpy-sim:
     <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  moveitpy-hardware:
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]

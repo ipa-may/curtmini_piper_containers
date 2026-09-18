@@ -225,6 +225,25 @@ docker compose \
 The service maps Candle USB, the LPMS serial device, and the joystick. It does
 not use `privileged: true`.
 
+For only the Piper arm hardware, MoveIt, and RViz, use `piper-bringup`:
+
+```bash
+export RMW=cyclonedds
+xhost +local:docker
+docker compose \
+  -f compose.yaml \
+  -f compose.cyclonedds.yaml \
+  -f compose.gui.yaml \
+  up piper-bringup moveit-rviz-hardware
+```
+
+This reuses the hardware image with the base, IMU, and joystick disabled,
+and requires only the host CAN interface configured above. No IMU or joystick
+devices are mapped. The arm is automatically enabled by the launch defaults.
+For Zenoh, set `RMW=zenoh` and replace the middleware overlay with
+`compose.zenoh.yaml`. See [Piper arm only](README_compose_service.md#piper-arm-only)
+for profile and visualization details.
+
 ## Tools
 
 Run RViz against an already active simulation:

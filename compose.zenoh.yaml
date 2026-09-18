@@ -53,6 +53,14 @@ services:
     volumes:
       - *zenoh-volume
 
+  piper-bringup:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
   moveit-rviz-sim:
     depends_on:
       <<: *zenoh-dependency

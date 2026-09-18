@@ -7,8 +7,9 @@ add development and middleware services.
 | --- | --- | --- |
 | `gz-sim` | `simulation` | Runs Gazebo, simulated controllers, and the MoveIt server |
 | `real-bringup` | `hardware` | Runs Curt Mini and Piper hardware bringup with the MoveIt server |
+| `piper-bringup` | `piper-hardware` | Runs only Piper hardware and the MoveIt server, with no base, IMU, or joystick |
 | `moveit-rviz-sim` | `simulation` | RViz client for `gz-sim` |
-| `moveit-rviz-hardware` | `hardware` | RViz client for `real-bringup` |
+| `moveit-rviz-hardware` | `hardware` | RViz client for `real-bringup` or `piper-bringup` |
 | `moveitpy-sim` | `simulation-tools` | MoveItPy example for simulation |
 | `moveitpy-hardware` | `hardware-tools` | MoveItPy example for the real robot |
 | `keyboard-teleop-sim` | `simulation-tools` | Keyboard control for the simulated base |
@@ -20,6 +21,34 @@ add development and middleware services.
 `workspace-builder` is defined in `compose.workspace.yaml` and `zenoh-router`
 in `compose.zenoh.yaml`. The other services are defined in `compose.yaml`.
 
+## Piper arm only
+
+`piper-bringup` reuses the hardware image, disables the Curt Mini base, IMU,
+and joystick, and connects to the host CAN interface (`CAN_PORT`, default
+`can0`). It requires no USB, IMU, or joystick device mappings. Configure CAN
+on the host first, as described in the [real robot instructions](README.md#real-robot).
+
+For Piper hardware, MoveIt, and RViz with CycloneDDS:
+
+```bash
+export RMW=cyclonedds
+xhost +local:docker
+docker compose \
+  -f compose.yaml \
+  -f compose.cyclonedds.yaml \
+  -f compose.gui.yaml \
+  up piper-bringup moveit-rviz-hardware
+```
+
+For Zenoh, set `RMW=zenoh` and use `compose.zenoh.yaml` instead.
+Explicit service names activate the required services without a `--profile`
+option. The separate `piper-hardware` profile keeps the arm-only backend out
+of a full `--profile hardware up` startup. Run only one hardware backend
+(`real-bringup` or `piper-bringup`) in a given ROS domain.
+
+The launch defaults automatically enable the arm. RViz still displays the
+combined Curt Mini/Piper model; only the Piper hardware is started.
+
 ## RViz services
 
 The two RViz services normally use the same image, Dockerfile, launch file,
@@ -28,7 +57,7 @@ starting.
 
 | Setting | `moveit-rviz-sim` | `moveit-rviz-hardware` |
 | --- | --- | --- |
-| Backend | `gz-sim` | `real-bringup` |
+| Backend | `gz-sim` | `real-bringup` or `piper-bringup` |
 | Profile | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |
 | Workspace overlay | Uses the shared local install | Uses the regular image |
@@ -44,7 +73,7 @@ check, network, and ROS environment. Both wait for `/joint_states` and use
 
 | Setting | `moveitpy-sim` | `moveitpy-hardware` |
 | --- | --- | --- |
-| Backend | `gz-sim` | `real-bringup` |
+| Backend | `gz-sim` | `real-bringup` or `piper-bringup` |
 | Profile | `simulation-tools` | `hardware-tools` |
 | Controller mode | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |

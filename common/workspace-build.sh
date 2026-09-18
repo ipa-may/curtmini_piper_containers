@@ -8,5 +8,8 @@ colcon --log-base /opt/ws/log build \
   --base-paths /opt/ws/src /opt/ws/dependencies \
   --build-base /opt/ws/build --install-base /opt/ws/install \
   --merge-install \
-  --packages-up-to curtmini_piper_gz_sim curtmini_piper_motion_examples \
+  --packages-up-to \
+    curtmini_piper_bringup \
+    curtmini_piper_gz_sim \
+    curtmini_piper_motion_examples \
   --cmake-args -DCMAKE_BUILD_TYPE=Release "$@"

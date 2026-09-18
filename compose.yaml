@@ -109,6 +109,40 @@ services:
       - start_joystick:=${START_JOYSTICK:-true}
       - start_imu:=${START_IMU:-true}
       - use_rviz:=false
+      - control_enabled:=${CONTROL_ENABLED:-true}
+      - fast_mode:=${FAST_MODE:-true}
+      - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
+      - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
+      - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}
+      - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
+    stop_grace_period: 20s
+
+  piper-bringup:
+    profiles: [piper-hardware]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/hardware/Dockerfile
+      target: runtime
+      args:
+        <<: *build-args
+    network_mode: host
+    init: true
+    environment:
+      <<: *ros-environment
+    command:
+      - ros2
+      - launch
+      - curtmini_piper_bringup
+      - bringup.launch.py
+      - can_port:=${CAN_PORT:-can0}
+      - start_base:=false
+      - start_joystick:=false
+      - start_imu:=false
+      - start_arm_hardware:=true
+      - use_rviz:=false
+      - control_enabled:=${CONTROL_ENABLED:-true}
+      - fast_mode:=${FAST_MODE:-true}
       - arm_mount_xyz:=${ARM_MOUNT_XYZ:-0 0 0.18}
       - arm_mount_rpy:=${ARM_MOUNT_RPY:-0 0 0}
       - tcp_offset_xyz:=${TCP_OFFSET_XYZ:-0 0 0}

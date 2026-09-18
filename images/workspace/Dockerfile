@@ -13,6 +13,7 @@ COPY images/moveitpy/ros-packages.txt /tmp/moveitpy.txt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       build-essential cmake git ca-certificates python3-yaml \
+      libusb-1.0-0-dev \
       python3-colcon-common-extensions python3-rosdep python3-vcstool \
       "ros-${ROS_DISTRO}-rmw-${RMW}-cpp" \
     && cat /tmp/gazebo.txt /tmp/rviz.txt /tmp/moveitpy.txt \
