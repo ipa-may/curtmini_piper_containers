@@ -1,5 +1,7 @@
 services:
   gz-sim:
+    devices:
+      - /dev/dri:/dev/dri
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
@@ -24,17 +26,21 @@ services:
       - tcp_offset_rpy:=${TCP_OFFSET_RPY:-0 0 0}
 
   moveit-rviz-sim:
+    devices:
+      - /dev/dri:/dev/dri
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
-      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-1}
+      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-0}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
   moveit-rviz-hardware:
+    devices:
+      - /dev/dri:/dev/dri
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
-      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-1}
+      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-0}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
