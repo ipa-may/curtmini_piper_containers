@@ -9,7 +9,7 @@ fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 workspace_src="$(realpath "$1")"
-ros_distro="${2:-${ROS_DISTRO:-jazzy}}"
+ros_distro="${2:-${CONTAINER_ROS_DISTRO:-jazzy}}"
 lock_dir="${repo_root}/locks/${ros_distro}"
 
 if [[ ! -d "${lock_dir}" ]]; then

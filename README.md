@@ -13,15 +13,21 @@ for the available services and their roles.
 Set the variant with environment variables:
 
 ```bash
-export ROS_DISTRO=jazzy
+export CONTAINER_ROS_DISTRO=jazzy
 export RMW=cyclonedds
 ```
+
+`CONTAINER_ROS_DISTRO` defaults to `jazzy` and is independent of the host's
+`ROS_DISTRO`, so sourcing ROS 2 Humble on the host does not change the container
+variant. If you have an existing `.env`, rename its `ROS_DISTRO` setting to
+`CONTAINER_ROS_DISTRO`. Dockerfiles still use `ROS_DISTRO` internally; Compose
+passes the selected container distro as that build argument.
 
 Supported values are:
 
 | Input | Values |
 | --- | --- |
-| `ROS_DISTRO` | `jazzy`, `kilted` |
+| `CONTAINER_ROS_DISTRO` | `jazzy`, `kilted` |
 | `RMW` | `cyclonedds`, `zenoh` |
 
 Images are tagged `<distro>-<rmw>`, for example:
@@ -77,8 +83,8 @@ has passed. Branch references, base image tags, and apt packages can change.
 Build the selected application images and, for Zenoh, the router:
 
 ```bash
-ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/build-all.sh
-ROS_DISTRO=jazzy RMW=zenoh ./scripts/build-all.sh
+CONTAINER_ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/build-all.sh
+CONTAINER_ROS_DISTRO=jazzy RMW=zenoh ./scripts/build-all.sh
 ```
 
 Build one image or its test stage:
@@ -135,7 +141,7 @@ revisions change or stale build output must be removed.
 Always combine the generic Compose file with the middleware overlay:
 
 ```bash
-export ROS_DISTRO=jazzy
+export CONTAINER_ROS_DISTRO=jazzy
 export RMW=cyclonedds
 
 docker compose \
@@ -169,7 +175,7 @@ The Zenoh overlay starts one robot-side router and configures every local ROS
 container as a peer connected to `tcp/127.0.0.1:7447`:
 
 ```bash
-export ROS_DISTRO=jazzy
+export CONTAINER_ROS_DISTRO=jazzy
 export RMW=zenoh
 
 docker compose \
@@ -302,8 +308,8 @@ Validate source locks, Dockerfile stages, the Compose matrix, and built images:
 ```bash
 ./scripts/validate-locks.sh
 ./scripts/validate-compose.sh
-ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/verify-images.sh
-ROS_DISTRO=jazzy RMW=zenoh ./scripts/verify-images.sh
+CONTAINER_ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/verify-images.sh
+CONTAINER_ROS_DISTRO=jazzy RMW=zenoh ./scripts/verify-images.sh
 ```
 
 Update one distro's existing lock entries from local Git checkouts:

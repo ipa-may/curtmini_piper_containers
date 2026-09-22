@@ -5,15 +5,15 @@ x-ros-environment: &ros-environment
   RMW_IMPLEMENTATION: rmw_${RMW:-cyclonedds}_cpp
 
 x-build-args: &build-args
-  ROS_DISTRO: ${ROS_DISTRO:-jazzy}
-  ROS_IMAGE: ${ROS_IMAGE:-ros:${ROS_DISTRO:-jazzy}-ros-base-noble}
+  ROS_DISTRO: ${CONTAINER_ROS_DISTRO:-jazzy}
+  ROS_IMAGE: ${ROS_IMAGE:-ros:${CONTAINER_ROS_DISTRO:-jazzy}-ros-base-noble}
   RMW: ${RMW:-cyclonedds}
-  LOCK_DIR: locks/${ROS_DISTRO:-jazzy}
+  LOCK_DIR: locks/${CONTAINER_ROS_DISTRO:-jazzy}
   OCI_SOURCE: ${OCI_SOURCE:-}
   OCI_REVISION: ${OCI_REVISION:-unknown}
 
 x-moveit-rviz: &moveit-rviz
-  image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  image: ${IMAGE_PREFIX:-curtmini-piper}-moveit-rviz:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   build:
     context: .
     dockerfile: images/moveit-rviz/Dockerfile
@@ -26,7 +26,7 @@ x-moveit-rviz: &moveit-rviz
     <<: *ros-environment
 
 x-moveitpy: &moveitpy
-  image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  image: ${IMAGE_PREFIX:-curtmini-piper}-moveitpy:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   build:
     context: .
     dockerfile: images/moveitpy/Dockerfile
@@ -39,7 +39,7 @@ x-moveitpy: &moveitpy
     <<: *ros-environment
 
 x-keyboard-teleop: &keyboard-teleop
-  image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   build:
     context: .
     dockerfile: images/teleop/Dockerfile
@@ -56,7 +56,7 @@ x-keyboard-teleop: &keyboard-teleop
 services:
   gz-sim:
     profiles: [simulation]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-gazebo:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    image: ${IMAGE_PREFIX:-curtmini-piper}-gazebo:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
     build:
       context: .
       dockerfile: images/gazebo/Dockerfile
@@ -82,7 +82,7 @@ services:
 
   real-bringup:
     profiles: [hardware]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
     build:
       context: .
       dockerfile: images/hardware/Dockerfile
@@ -119,7 +119,7 @@ services:
 
   piper-bringup:
     profiles: [piper-hardware]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    image: ${IMAGE_PREFIX:-curtmini-piper}-hardware:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
     build:
       context: .
       dockerfile: images/hardware/Dockerfile
@@ -263,7 +263,7 @@ services:
 
   ros-cli:
     profiles: [tools]
-    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    image: ${IMAGE_PREFIX:-curtmini-piper}-teleop:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
     build:
       context: .
       dockerfile: images/teleop/Dockerfile

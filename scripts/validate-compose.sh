@@ -7,12 +7,12 @@ cd "${repo_root}"
 
 for ros_distro in jazzy kilted; do
   for rmw in cyclonedds zenoh; do
-    ROS_DISTRO="${ros_distro}" RMW="${rmw}" \
+    CONTAINER_ROS_DISTRO="${ros_distro}" RMW="${rmw}" \
       docker compose \
         -f compose.yaml \
         -f "compose.${rmw}.yaml" \
         --profile "*" config --quiet
-    ROS_DISTRO="${ros_distro}" RMW="${rmw}" \
+    CONTAINER_ROS_DISTRO="${ros_distro}" RMW="${rmw}" \
       docker compose \
         -f compose.yaml \
         -f "compose.${rmw}.yaml" \

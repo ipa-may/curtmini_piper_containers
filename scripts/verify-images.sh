@@ -3,7 +3,7 @@
 set -euo pipefail
 
 image_prefix="${IMAGE_PREFIX:-curtmini-piper}"
-ros_distro="${ROS_DISTRO:-jazzy}"
+ros_distro="${CONTAINER_ROS_DISTRO:-jazzy}"
 rmw="${RMW:-cyclonedds}"
 image_tag="${ros_distro}-${rmw}"
 expected_rmw="rmw_${rmw}_cpp"

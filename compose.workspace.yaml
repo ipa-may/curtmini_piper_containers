@@ -1,13 +1,13 @@
 # Local simulation development. Paths are runtime bind mounts, not build args.
 x-workspace-image: &workspace-image
-  image: ${IMAGE_PREFIX:-curtmini-piper}-workspace:${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+  image: ${IMAGE_PREFIX:-curtmini-piper}-workspace:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   build:
     context: .
     dockerfile: images/workspace/Dockerfile
     target: runtime
     args:
-      ROS_DISTRO: ${ROS_DISTRO:-jazzy}
-      ROS_IMAGE: ${ROS_IMAGE:-ros:${ROS_DISTRO:-jazzy}-ros-base-noble}
+      ROS_DISTRO: ${CONTAINER_ROS_DISTRO:-jazzy}
+      ROS_IMAGE: ${ROS_IMAGE:-ros:${CONTAINER_ROS_DISTRO:-jazzy}-ros-base-noble}
       RMW: ${RMW:-cyclonedds}
 
 x-install: &install
@@ -46,7 +46,7 @@ services:
         read_only: true
         bind: {create_host_path: false}
       - type: bind
-        source: ./locks/${ROS_DISTRO:-jazzy}
+        source: ./locks/${CONTAINER_ROS_DISTRO:-jazzy}
         target: /opt/locks
         read_only: true
       - workspace-dependencies:/opt/ws/dependencies
@@ -87,10 +87,10 @@ services:
 
 volumes:
   workspace-dependencies:
-    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-dependencies-${ROS_DISTRO:-jazzy}
+    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-dependencies-${CONTAINER_ROS_DISTRO:-jazzy}
   workspace-build:
-    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-build-${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-build-${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   workspace-install:
-    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-install-${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-install-${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   workspace-log:
-    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-log-${ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    name: ${COMPOSE_PROJECT_NAME:-curtmini-piper}-workspace-log-${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}

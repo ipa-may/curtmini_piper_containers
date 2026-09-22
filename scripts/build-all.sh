@@ -5,7 +5,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
-export ROS_DISTRO="${ROS_DISTRO:-jazzy}"
+export CONTAINER_ROS_DISTRO="${CONTAINER_ROS_DISTRO:-jazzy}"
 export RMW="${RMW:-cyclonedds}"
 
 case "${RMW}" in

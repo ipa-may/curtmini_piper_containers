@@ -14,14 +14,14 @@ x-zenoh-dependency: &zenoh-dependency
 
 services:
   zenoh-router:
-    image: ${IMAGE_PREFIX:-curtmini-piper}-zenoh-router:${ROS_DISTRO:-jazzy}-zenoh
+    image: ${IMAGE_PREFIX:-curtmini-piper}-zenoh-router:${CONTAINER_ROS_DISTRO:-jazzy}-zenoh
     build:
       context: .
       dockerfile: images/zenoh-router/Dockerfile
       target: runtime
       args:
-        ROS_DISTRO: ${ROS_DISTRO:-jazzy}
-        ROS_IMAGE: ${ROS_IMAGE:-ros:${ROS_DISTRO:-jazzy}-ros-base-noble}
+        ROS_DISTRO: ${CONTAINER_ROS_DISTRO:-jazzy}
+        ROS_IMAGE: ${ROS_IMAGE:-ros:${CONTAINER_ROS_DISTRO:-jazzy}-ros-base-noble}
         OCI_SOURCE: ${OCI_SOURCE:-}
         OCI_REVISION: ${OCI_REVISION:-unknown}
     network_mode: host
