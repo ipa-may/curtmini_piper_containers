@@ -77,6 +77,9 @@ below.
 
 Kilted remains a compatibility baseline until its full build and runtime matrix
 has passed. Branch references, base image tags, and apt packages can change.
+Its simulation source pins include the Curt Mini package split, Piper joint
+limits, Hokuyo description, and `neo_gz_worlds` assets as a compatible source set;
+these pins alone do not establish Kilted runtime compatibility.
 
 ## Build
 
@@ -101,6 +104,9 @@ docker buildx build \
 ```
 
 `ROS_IMAGE` can override the derived `ros:<distro>-ros-base-noble` base image.
+When a branch such as `main` advances without a manifest change, rebuild with
+`docker compose ... build --no-cache gz-sim` to refresh the Git checkout inside
+the image. Docker's cached import layer does not check for newer commits.
 
 ## Local simulation workspace
 
@@ -115,6 +121,24 @@ the development image once and compile the workspace:
 docker compose -f compose.yaml -f compose.workspace.yaml build workspace-builder
 docker compose -f compose.yaml -f compose.workspace.yaml run --rm workspace-builder
 ```
+
+The default source layout matches `project-docs/dependencies.repos`:
+
+```text
+rob4_fraunhofer_ws/src/
+  curt_mini/
+  curtmini_piper/
+  piper_driver/agx_arm_urdf/
+  curtmini_piper_simulation/
+    curtmini_piper_gz_sim/
+    neo_gz_worlds/
+```
+
+For an existing `.env`, update `CURTMINI_PIPER_GZ_SIM_SOURCE` to the nested
+simulation path and add `NEO_GZ_WORLDS_SOURCE` from `.env.example`.
+`AGX_ARM_URDF_SOURCE` configures the arm description checkout. All these mounts
+are read-only. The builder installs both the simulator and the Neobotix models
+into the shared install volume; runtime containers use that installed copy.
 
 Run Gazebo, then start RViz in another terminal:
 
@@ -133,7 +157,7 @@ docker compose -f compose.yaml -f compose.cyclonedds.yaml \
 
 After source or checkout-path changes, rerun `workspace-builder`; no image
 rebuild is needed. Rebuild the workspace image only when its ROS or system
-dependencies change. Use `down -v` with the workspace overlay when dependency
+dependencies change. Use `--profile '*' down -v` with the workspace overlay when dependency
 revisions change or stale build output must be removed.
 
 ## CycloneDDS
@@ -168,6 +192,74 @@ RViz. This prevents a second MoveIt server from being launched.
 
 Add `/dev/dri` through a local override when hardware-accelerated rendering is
 required.
+
+## Mapping world and lidar
+
+`SIM_WORLD` selects `curtmini_piper` (default) or `curtmini_piper_map` (office
+environment). Both the regular image and local workspace install these worlds.
+The simulator requires `neo_gz_worlds` at startup even for the default world.
+
+**Current mapping-world limitation:** with simulator revision `ede003e` and
+`neo_gz_worlds` revision `acfcd70`, Gazebo cannot load the office world. The
+sources lack `window_broken`, `office_chair_red`, `office_chair_green`, `couch`,
+and `office_desk`. The world references `office_env_w1` and `office_env_w2`,
+but the supplied directories are named `office_env_w 1` and `office_env_w 2`.
+Repeated unnamed door/window includes in `office_env` also produce duplicate
+model-name errors. These source assets need repair before the mapping command
+below can run successfully. The default `curtmini_piper` world passes the
+Jazzy/CycloneDDS runtime check with Hokuyo enabled.
+
+Start the mapping world with Gazebo and the standalone MoveIt RViz client:
+
+```bash
+SIM_WORLD=curtmini_piper_map docker compose \
+  -f compose.yaml -f compose.cyclonedds.yaml -f compose.gui.yaml \
+  up gz-sim moveit-rviz-sim
+```
+
+For local sources, insert `-f compose.workspace.yaml` before the GUI overlay
+after building the workspace. Omit the GUI overlay and name only `gz-sim` for
+headless operation. Use `compose.zenoh.yaml` and `RMW=zenoh` for Zenoh.
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `SIM_WORLD` | `curtmini_piper` | Packaged world name |
+| `SIM_USE_HOKUYO` | `true` | Enable simulated Hokuyo and `/scan` |
+| `SIM_SPAWN_X` | `0.0` | Initial x position in metres |
+| `SIM_SPAWN_Y` | `-2.0` | Initial y position in metres |
+| `SIM_SPAWN_Z` | `0.16` | Initial z position in metres |
+| `SIM_SPAWN_YAW` | `0.0` | Initial yaw in radians |
+
+These settings apply to both GUI and headless launches. An external world path
+must exist inside the container; mount its file and assets with a local override.
+The default Hokuyo scan has frame `hokuyo_link` and 1081 ranges. Gazebo's GPU
+lidar requires a working renderer even when the GUI is disabled. The RViz-only
+`LIBGL_ALWAYS_SOFTWARE` setting is not applied to Gazebo.
+
+The launch starts the controller spawners automatically. In another terminal,
+verify readiness and then start keyboard control:
+
+```bash
+./scripts/verify-simulation.sh
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  run --rm keyboard-teleop-sim
+```
+
+For the workspace workflow, pass `-f compose.workspace.yaml` to the verification
+script. It checks the running `gz-sim` service using the selected middleware.
+Keep the teleop terminal focused: `i`/`,` drive, `j`/`l` turn, and `k` stops.
+
+If the robot spawned but a base controller stayed inactive, inspect the launch
+logs and use the upstream README's recovery commands:
+
+```bash
+docker compose -f compose.yaml -f compose.cyclonedds.yaml run --rm ros-cli \
+  ros2 control set_controller_state joint_state_broadcaster active
+docker compose -f compose.yaml -f compose.cyclonedds.yaml run --rm ros-cli \
+  ros2 control set_controller_state base_controller active
+docker compose -f compose.yaml -f compose.cyclonedds.yaml run --rm ros-cli \
+  ros2 control list_controllers
+```
 
 ## Zenoh
 
@@ -312,11 +404,38 @@ CONTAINER_ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/verify-images.sh
 CONTAINER_ROS_DISTRO=jazzy RMW=zenoh ./scripts/verify-images.sh
 ```
 
+Compose validation covers both distros and middleware variants, with and without
+the workspace and GUI overlays, including nondefault world, lidar, and spawn
+settings. Image verification checks both installed worlds and their referenced
+Neobotix models.
+The asset check currently fails for the mapping-world source issues described
+above; rebuilding the same revisions does not repair missing models.
+
+With `gz-sim` running, check advancing `/clock`, combined `/joint_states`, all
+three active controllers, the `/move_action` server, and valid `/scan` data:
+
+```bash
+RMW=cyclonedds ./scripts/verify-simulation.sh
+# With the local workspace overlay:
+RMW=cyclonedds ./scripts/verify-simulation.sh -f compose.workspace.yaml
+```
+
+Repeat with `SIM_WORLD=curtmini_piper_map` when starting Gazebo. The check uses
+the resolved `SIM_USE_HOKUYO` setting and skips lidar only when explicitly
+disabled. `SIM_CHECK_TIMEOUT` defaults to 120 seconds. No motion commands or
+controller state changes are issued by the check.
+
 Update one distro's existing lock entries from local Git checkouts:
 
 ```bash
 ./scripts/update-locks.sh /path/to/workspace/src jazzy
 ```
+
+Checkout discovery supports nested grouping directories such as
+`curtmini_piper_simulation` and `piper_driver`. Flat paths are preferred;
+otherwise a repository basename must match exactly one checkout. Every lock
+entry must be present locally, including hardware dependencies. Missing or
+ambiguous checkouts fail before the manifest is written.
 
 Review and commit lock changes explicitly. A later GitHub Actions workflow can
 use a distro, RMW, and image matrix, with headless Gazebo, MoveIt RViz launch,

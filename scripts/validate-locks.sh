@@ -28,7 +28,8 @@ for distro_dir in sorted((repo_root / "locks").iterdir()):
         if not repositories:
             raise SystemExit(f"No repositories in {lock_file}")
         required = {"curt_mini", "curtmini_piper", "curtmini_piper_gz_sim",
-                    "agx_arm_urdf", "agx_arm_ros", "candle_ros2", "openzenros2"}
+                    "agx_arm_urdf", "agx_arm_ros", "candle_ros2", "openzenros2",
+                    "neo_gz_worlds"}
         if missing := required - repositories.keys():
             raise SystemExit(f"{lock_file}: missing source repositories {sorted(missing)}")
         for name, entry in repositories.items():

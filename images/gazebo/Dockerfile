@@ -60,6 +60,7 @@ RUN apt-get update \
         /opt/ws/src/curtmini_piper/curtmini_piper_description \
         /opt/ws/src/curtmini_piper/curtmini_piper_moveit_config \
         /opt/ws/src/curtmini_piper_gz_sim \
+        /opt/ws/src/neo_gz_worlds \
       --ignore-src \
       --rosdistro "${ROS_DISTRO}" \
       --skip-keys "candle_ros2 warehouse_ros_mongo" \
@@ -82,6 +83,7 @@ RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
         curt_mini_teleop \
         curtmini_piper_description \
         curtmini_piper_moveit_config \
+        neo_gz_worlds \
         curtmini_piper_gz_sim
 
 FROM builder AS test

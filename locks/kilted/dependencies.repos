@@ -2,19 +2,23 @@ repositories:
   agx_arm_urdf:
     type: git
     url: https://github.com/ipa-may/agx_arm_urdf.git
-    version: 0b84e6f0c793ae353f0efd7b731268dfc5f7b3e3
+    version: 73c2487db05f3e10b23b351a5cae80a7ebaf6ee6
   curt_mini:
     type: git
     url: https://github.com/ipa-may/curt_mini.git
-    version: 824639f8c442d7955a935f3cde64f56dbe21caf8
+    version: 4267c0e745ac22dcd6556fac6d9456376e4a449d
   curtmini_piper:
     type: git
     url: https://github.com/ipa-may/curtmini_piper.git
-    version: 5cbcccac1103924a4e835b985b3311f72eab3f49
+    version: 3cd970ff19e7ac2488322684af76e1093b682e5d
   curtmini_piper_gz_sim:
     type: git
     url: https://github.com/ipa-may/curtmini_piper_gz_sim.git
-    version: 7be00b5be3485e0c33d82e87531fbbdf5a48bb72
+    version: ede003ed75fdf191052916d1f86bf40d899dd387
+  neo_gz_worlds:
+    type: git
+    url: https://github.com/ipa-may/neo_gz_worlds.git
+    version: acfcd704938a0d2e67de9e346abf10317db1bd8a
   agx_arm_ros:
     type: git
     url: https://github.com/ipa-may/agx_arm_ros.git

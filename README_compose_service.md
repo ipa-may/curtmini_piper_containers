@@ -21,6 +21,19 @@ add development and middleware services.
 `workspace-builder` is defined in `compose.workspace.yaml` and `zenoh-router`
 in `compose.zenoh.yaml`. The other services are defined in `compose.yaml`.
 
+## Simulation
+
+`gz-sim` starts `simulation.launch.py` with the Gazebo-owned controller manager
+and one MoveIt server. `SIM_WORLD=curtmini_piper_map` selects the office world;
+the default is `curtmini_piper`. Both worlds and their `neo_gz_worlds` model
+assets are installed in the Gazebo image and local workspace install.
+
+`SIM_USE_HOKUYO` defaults to `true`, enabling `/scan`. `SIM_SPAWN_X`,
+`SIM_SPAWN_Y`, `SIM_SPAWN_Z`, and `SIM_SPAWN_YAW` control the initial pose.
+These settings also apply when `compose.gui.yaml` enables the Gazebo window.
+See [mapping world and lidar](README.md#mapping-world-and-lidar) for startup,
+keyboard driving, and controller recovery commands.
+
 ## Piper arm only
 
 `piper-bringup` reuses the hardware image, disables the Curt Mini base, IMU,

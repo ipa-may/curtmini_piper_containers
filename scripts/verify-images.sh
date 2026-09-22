@@ -23,6 +23,22 @@ fi
 
 docker run --rm "${image_prefix}-gazebo:${image_tag}" \
   ros2 pkg prefix curtmini_piper_gz_sim
+docker run --rm -i "${image_prefix}-gazebo:${image_tag}" python3 - <<'PY'
+from pathlib import Path
+import xml.etree.ElementTree as ET
+from ament_index_python.packages import get_package_share_directory
+
+sim_share = Path(get_package_share_directory("curtmini_piper_gz_sim"))
+models = Path(get_package_share_directory("neo_gz_worlds")) / "models"
+for name in ("curtmini_piper", "curtmini_piper_map"):
+    world = sim_share / "worlds" / f"{name}.sdf"
+    for uri in ET.parse(world).iter("uri"):
+        if uri.text and uri.text.startswith("model://"):
+            model = models / uri.text.removeprefix("model://")
+            if not (model / "model.config").is_file():
+                raise SystemExit(f"Missing world model: {model}")
+print("Both packaged worlds and their model assets are installed")
+PY
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   ros2 pkg prefix curtmini_piper_bringup
 docker run --rm "${image_prefix}-hardware:${image_tag}" \

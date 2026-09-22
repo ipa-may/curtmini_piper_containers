@@ -15,6 +15,10 @@ repositories:
     type: git
     url: https://github.com/ipa-may/curtmini_piper_gz_sim.git
     version: main
+  neo_gz_worlds:
+    type: git
+    url: https://github.com/ipa-may/neo_gz_worlds.git
+    version: main
   agx_arm_ros:
     type: git
     url: https://github.com/ipa-may/agx_arm_ros.git

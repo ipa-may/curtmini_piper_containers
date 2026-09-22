@@ -19,6 +19,7 @@ fi
 
 python3 - "${repo_root}" "${workspace_src}" "${lock_dir}" <<'PY'
 from pathlib import Path
+import os
 import subprocess
 import sys
 
@@ -30,12 +31,30 @@ workspace_src = Path(sys.argv[2])
 lock_dir = Path(sys.argv[3])
 lock_files = [lock_dir / "dependencies.repos"]
 
+# Discover repositories below grouping directories such as piper_driver and
+# curtmini_piper_simulation. Stop at Git roots instead of scanning their assets.
+checkouts = {}
+for directory, subdirs, files in os.walk(workspace_src):
+    path = Path(directory)
+    if ".git" in subdirs or ".git" in files:
+        checkouts.setdefault(path.name, []).append(path)
+        subdirs[:] = []
+    else:
+        subdirs[:] = [name for name in subdirs
+                      if not name.startswith(".") and name not in {"build", "install", "log"}]
+
 for lock_file in lock_files:
     data = yaml.safe_load(lock_file.read_text())
     for name, entry in data.get("repositories", {}).items():
         checkout = workspace_src / name
         if not (checkout / ".git").exists():
-            raise SystemExit(f"Missing Git checkout for {name}: {checkout}")
+            matches = checkouts.get(Path(name).name, [])
+            if len(matches) != 1:
+                raise SystemExit(
+                    f"Expected one Git checkout for {name} below {workspace_src}; "
+                    f"found {len(matches)}: {matches}"
+                )
+            checkout = matches[0]
         entry["version"] = subprocess.check_output(
             ["git", "-C", str(checkout), "rev-parse", "HEAD"],
             text=True,

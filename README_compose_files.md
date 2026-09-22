@@ -46,6 +46,8 @@ configuration, adds the router, and makes ROS services wait for it.
 
 `compose.gui.yaml` passes `DISPLAY`, mounts the X11 socket, enables the Gazebo
 GUI, and configures software rendering for RViz. Leave it out for headless use.
+Its Gazebo command also forwards `SIM_WORLD`, `SIM_USE_HOKUYO`, and the
+`SIM_SPAWN_*` settings, retaining the selections made for headless operation.
 
 ## Workspace overlay
 
@@ -53,6 +55,9 @@ GUI, and configures software rendering for RViz. Leave it out for headless use.
 repositories and runs `colcon build`. Its install volume is shared with the
 Gazebo, simulation RViz, and simulation MoveItPy services. Changing source or
 checkout paths requires another workspace build, not an image rebuild.
+The simulator and `neo_gz_worlds` are mounted from
+`src/curtmini_piper_simulation/` by default. Their installed world files and
+models are included in the shared install volume.
 
 Leave this overlay out when building or running images directly from the Git
 revisions in `locks/<distro>/dependencies.repos`.
