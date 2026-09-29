@@ -1,7 +1,0 @@
-moveit-configs-utils
-moveit-kinematics
-moveit-planners-ompl
-moveit-py
-moveit-simple-controller-manager
-robot-state-publisher
-xacro

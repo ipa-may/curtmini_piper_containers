@@ -1,6 +1,0 @@
-moveit-configs-utils
-moveit-kinematics
-moveit-planners-ompl
-moveit-ros-visualization
-rviz2
-xacro

@@ -3,6 +3,9 @@ x-workspace-image: &workspace-image
   image: ${IMAGE_PREFIX:-curtmini-piper}-workspace:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
   build:
     context: .
+    additional_contexts:
+      simulation_source: ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}
+      robot_source: ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}
     dockerfile: images/workspace/Dockerfile
     target: runtime
     args:
@@ -50,10 +53,6 @@ services:
         target: /opt/ws/src/neo_gz_worlds
         read_only: true
         bind: {create_host_path: false}
-      - type: bind
-        source: ./locks/${CONTAINER_ROS_DISTRO:-jazzy}
-        target: /opt/locks
-        read_only: true
       - workspace-dependencies:/opt/ws/dependencies
       - workspace-build:/opt/ws/build
       - workspace-install:/opt/ws/install
