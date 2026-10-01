@@ -1,63 +1,86 @@
 # Compose file structure
 
-See [Compose services](README_compose_service.md) for the available services
-and the differences between their simulation and hardware variants.
-
-The Compose configuration is split into a base file and optional overlays:
+Run commands from `curtmini_piper_containers/`. The infrastructure includes the
+application definitions and adds shared configuration:
 
 | File | Purpose |
 | --- | --- |
-| `compose.yaml` | Defines the services and their default headless behavior |
+| `compose.yaml` | Includes each application repository's `docker/compose.yaml` |
 | `compose.cyclonedds.yaml` | Configures CycloneDDS and mounts its configuration |
 | `compose.zenoh.yaml` | Configures Zenoh and starts the local router |
-| `compose.gui.yaml` | Adds X11 access and enables graphical applications |
-| `compose.workspace.yaml` | Builds mounted local sources and uses their shared install |
+| `compose.gui.yaml` | Includes each application's `docker/compose.gui.yaml` |
+| `compose.workspace.yaml` | Adds the workspace builder and shared install mounts |
 
-The overlay files contain partial service definitions and are intended to be
-used with `compose.yaml`. Compose merges files from left to right, so later
-files extend or override earlier settings.
+The robot and simulator checkouts must exist before Compose can load the includes.
+Their locations are selected by `CURTMINI_PIPER_SOURCE` and
+`CURTMINI_PIPER_GZ_SIM_SOURCE`, with defaults matching the project workspace.
+Paths inside included application files are resolved relative to those files.
 
-For example, this combines the base services, CycloneDDS, the local development
-workspace, and GUI support:
+## Application services
+
+`curtmini_piper/docker/compose.yaml` defines hardware, RViz, MoveItPy, teleop, and
+ROS CLI services. Its builds select one of four targets from `docker/Dockerfile`:
+`hardware`, `moveit-rviz`, `moveitpy`, or `teleop`.
+
+`curtmini_piper_gz_sim/docker/compose.yaml` defines `gz-sim` and its Gazebo build.
+Gazebo is headless by default (`gui:=false`). It starts MoveIt and controllers;
+RViz is a separate client, so the simulation uses `use_rviz:=false`.
+See [Compose services](README_compose_service.md) for the service names and roles.
+
+## Middleware and GUI
+
+Use one middleware overlay, matching `RMW`: `compose.cyclonedds.yaml` or
+`compose.zenoh.yaml`. The GUI overlay includes application settings for `DISPLAY`,
+the X11 socket, and `/dev/dri`. It enables the Gazebo window and passes world,
+lidar, and spawn settings. RViz defaults to hardware rendering; use
+`LIBGL_ALWAYS_SOFTWARE=1` for its software-rendering fallback.
+
+For example, launch the office world and RViz with the regular application images:
 
 ```bash
-docker compose \
-  -f compose.yaml \
-  -f compose.cyclonedds.yaml \
-  -f compose.workspace.yaml \
-  -f compose.gui.yaml \
-  up gz-sim
+export CONTAINER_ROS_DISTRO=jazzy
+export RMW=cyclonedds
+xhost +si:localuser:root
+SIM_WORLD=curtmini_piper_map docker compose \
+  -f compose.yaml -f compose.cyclonedds.yaml -f compose.gui.yaml \
+  up --build gz-sim moveit-rviz-sim
 ```
 
-## Base services
-
-`compose.yaml` owns service names, images, build definitions, commands,
-profiles, networking, and common ROS environment variables. Gazebo is headless
-by default (`gui:=false`), which also supports CI. RViz runs as a separate
-service, so Gazebo uses `use_rviz:=false`.
-
-## Middleware overlays
-
-Use exactly one middleware overlay. `compose.cyclonedds.yaml` mounts the
-CycloneDDS configuration. `compose.zenoh.yaml` mounts the Zenoh session
-configuration, adds the router, and makes ROS services wait for it.
-
-## GUI overlay
-
-`compose.gui.yaml` passes `DISPLAY`, mounts the X11 socket, enables the Gazebo
-GUI, and configures software rendering for RViz. Leave it out for headless use.
-Its Gazebo command also forwards `SIM_WORLD`, `SIM_USE_HOKUYO`, and the
-`SIM_SPAWN_*` settings, retaining the selections made for headless operation.
+The X11 rule names `root` because that is the current container user. The GUI
+files are overlays and must be combined with the base configuration.
 
 ## Workspace overlay
 
-`compose.workspace.yaml` adds `workspace-builder`, which mounts the local source
-repositories and runs `colcon build`. Its install volume is shared with the
-Gazebo, simulation RViz, and simulation MoveItPy services. Changing source or
-checkout paths requires another workspace build, not an image rebuild.
-The simulator and `neo_gz_worlds` are mounted from
-`src/curtmini_piper_simulation/` by default. Their installed world files and
-models are included in the shared install volume.
+Use this optional workflow to compile mounted local repositories into a shared
+install volume. Build it before starting any service that uses the volume:
 
-Leave this overlay out when building or running images directly from the Git
-revisions in `locks/<distro>/dependencies.repos`.
+```bash
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml build workspace-builder
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml run --rm workspace-builder
+SIM_WORLD=curtmini_piper_map docker compose \
+  -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml -f compose.gui.yaml \
+  up gz-sim moveit-rviz-sim
+```
+
+The simulator and `neo_gz_worlds` default to checkouts under
+`src/curtmini_piper_simulation/`. Source mounts are read-only; the builder writes
+compiled packages to named volumes. Rerun it after editing local source, then
+restart affected services with the overlay. Gazebo and simulation tools use the
+development image; hardware services retain their normal images with the shared
+installation mounted over `/opt/ws/install`.
+
+Without this overlay, application builds copy their owning repository locally
+and import upstream sources from repository-owned manifests. See
+[source inputs](README.md#source-inputs) and
+[local workspace details](README.md#local-simulation-workspace).
+
+## Environment selection
+
+`.env` supplies values on each Compose invocation, and shell exports take
+precedence. An exported `COMPOSE_FILE` such as
+`compose.yaml:compose.cyclonedds.yaml:compose.gui.yaml` replaces repeated `-f`
+arguments. Export it in each terminal, or set it in `.env`. Explicit `-f`
+arguments override that selection. `.env.example` does not set `COMPOSE_FILE`.

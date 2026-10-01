@@ -1,7 +1,8 @@
 # Compose services
 
-Most services are defined in `compose.yaml`. The workspace and Zenoh overlays
-add development and middleware services.
+The root `compose.yaml` includes the robot and simulator repositories'
+`docker/compose.yaml` files. The workspace and Zenoh overlays add development
+and middleware services.
 
 | Service | Profile | Role |
 | --- | --- | --- |
@@ -19,7 +20,8 @@ add development and middleware services.
 | `zenoh-router` | none | Local Zenoh router added by `compose.zenoh.yaml` |
 
 `workspace-builder` is defined in `compose.workspace.yaml` and `zenoh-router`
-in `compose.zenoh.yaml`. The other services are defined in `compose.yaml`.
+in `compose.zenoh.yaml`. `gz-sim` is defined in the simulator repository;
+the remaining application services are defined in `curtmini_piper/docker/compose.yaml`.
 
 ## Simulation
 
@@ -45,7 +47,7 @@ For Piper hardware, MoveIt, and RViz with CycloneDDS:
 
 ```bash
 export RMW=cyclonedds
-xhost +local:docker
+xhost +si:localuser:root
 docker compose \
   -f compose.yaml \
   -f compose.cyclonedds.yaml \
@@ -73,7 +75,7 @@ starting.
 | Backend | `gz-sim` | `real-bringup` or `piper-bringup` |
 | Profile | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |
-| Workspace overlay | Uses the shared local install | Uses the regular image |
+| Workspace overlay | Development image with shared local install | Regular image with shared local install |
 
 RViz is only a client. The corresponding backend provides `move_group`, robot
 state, and controllers.
@@ -90,7 +92,7 @@ check, network, and ROS environment. Both wait for `/joint_states` and use
 | Profile | `simulation-tools` | `hardware-tools` |
 | Controller mode | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |
-| Workspace overlay | Uses the shared local install | Uses the regular image |
+| Workspace overlay | Development image with shared local install | Regular image with shared local install |
 
 Start the appropriate backend before its RViz, MoveItPy, or keyboard client.
 

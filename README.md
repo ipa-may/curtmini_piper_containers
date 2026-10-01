@@ -1,12 +1,13 @@
 # Curt Mini Piper Containers
 
-Independent ROS 2 container images and Compose services for the Curt Mini with
-a Piper arm. The repository supports ROS distro and middleware variants from
+Compose entry point and shared tooling for Curt Mini with a Piper arm. Application
+Dockerfiles and services are maintained in their owning source repositories. The repository supports ROS distro and middleware variants from
 one source branch. Nav2 and RealSense are intentionally outside its scope.
 
 See [Compose file structure](README_compose_files.md) for how the base file and
 optional overlays are combined, and [Compose services](README_compose_service.md)
-for the available services and their roles.
+for the available services and their roles. Run commands below from
+`curtmini_piper_containers/`.
 
 ## Variant model
 
@@ -41,9 +42,14 @@ Images are tagged `<distro>-<rmw>`, for example:
 | `curtmini-piper-teleop:jazzy-cyclonedds` | Keyboard teleoperation and ROS CLI |
 | `curtmini-piper-zenoh-router:jazzy-zenoh` | Robot-side Zenoh router |
 
-Each application Dockerfile contains `base`, `dependencies`, `builder`, `test`,
-and `runtime` stages. Published images use `runtime`; CI can target `test`.
-The workspace image is a development environment and has a single stage.
+`curtmini_piper/docker/Dockerfile` produces four runtime targets: `hardware`,
+`moveit-rviz`, `moveitpy`, and `teleop`. They share the ROS base; the first three
+also share MoveIt dependencies and the common robot build. Their optional test
+targets are named `<target>-test`.
+
+`curtmini_piper_gz_sim/docker/Dockerfile` and the infrastructure's Zenoh Dockerfile
+retain `base`, `dependencies`, `builder`, `test`, and `runtime` stages. The
+workspace image has a single `runtime` stage with development tools.
 
 The distro and middleware variants do not require long-lived branches. CI can
 build a matrix from `main`; use release branches only if compatibility requires
@@ -51,35 +57,41 @@ real divergence.
 
 ## Source inputs
 
-All Git source dependencies are listed once per distro in
-`locks/<distro>/dependencies.repos`. Every application image and the workspace
-builder reads this manifest. Images retain their individual package build
-selections. Python dependency revisions remain in
-`locks/<distro>/hardware-python.env` because they are installed with pip.
+The root `compose.yaml` includes the Compose files from:
 
-Git revisions may be branches, tags, or commit SHAs. Use development branches
-for now and release tags after the packages reach version `0.1.0`.
+- `../rob4_fraunhofer_ws/src/curtmini_piper/docker/`
+- `../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim/docker/`
 
-Create local configuration:
+Each owner maintains its Dockerfile, package lists, Compose services, and GUI
+settings. Image builds copy the owner's local checkout and clone upstream
+repositories from its `dependencies.repos`. A manifest at
+`docker/dependencies/<distro>.repos` takes precedence when present. Hardware's
+Python SDK revision lives in the robot repository's
+`docker/dependencies/<distro>-hardware-python.env`.
+
+For example, a regular Gazebo image uses the local simulator code but imports
+`curtmini_piper`, `curt_mini`, `agx_arm_urdf`, and `neo_gz_worlds` from GitHub.
+The teleop target installs binary packages and skips the source-build stages.
+`project-docs/dependencies.repos` creates the host checkout layout.
+
+Create local configuration without replacing an existing file:
 
 ```bash
-cp .env.example .env
+[ -f .env ] || cp .env.example .env
 ```
 
-`.env` selects the ROS distro, middleware, image names, and runtime settings.
-It does not select source repositories. Host workspace checkouts and
-`project-docs/dependencies.repos` are independent of the container builds;
-no sibling checkout layout is required.
+`.env` selects the distro, middleware, image names, runtime settings, and source
+paths used for Compose includes and workspace mounts. Both application checkouts
+must exist. For another directory layout, adjust `CURTMINI_PIPER_SOURCE` and
+`CURTMINI_PIPER_GZ_SIM_SOURCE`, and set `CONTAINER_INFRA_SOURCE` to this
+infrastructure repository's absolute path for the shared build scripts.
 
-To change source code used by an image, update its manifest revision and rebuild
-the affected image. To test unpublished changes, use the workspace override
-below.
-
+Rebuild an application image to use edits in its own checkout. Use the workspace
+overlay below when you want multiple mounted repositories built together.
+Source manifests can use branches, tags, or commit SHAs; the default Jazzy
+manifests use project branches, while Kilted has additional pinned dependencies.
 Kilted remains a compatibility baseline until its full build and runtime matrix
-has passed. Branch references, base image tags, and apt packages can change.
-Its simulation source pins include the Curt Mini package split, Piper joint
-limits, Hokuyo description, and `neo_gz_worlds` assets as a compatible source set;
-these pins alone do not establish Kilted runtime compatibility.
+has passed. Base-image tags, branches, and apt packages can change.
 
 ## Build
 
@@ -90,23 +102,38 @@ CONTAINER_ROS_DISTRO=jazzy RMW=cyclonedds ./scripts/build-all.sh
 CONTAINER_ROS_DISTRO=jazzy RMW=zenoh ./scripts/build-all.sh
 ```
 
-Build one image or its test stage:
+Build one application image through Compose:
 
 ```bash
 docker compose -f compose.yaml -f compose.cyclonedds.yaml build gz-sim
-
-docker buildx build \
-  --build-arg ROS_DISTRO=jazzy \
-  --build-arg RMW=cyclonedds \
-  --build-arg LOCK_DIR=locks/jazzy \
-  --target test \
-  -f images/gazebo/Dockerfile .
 ```
 
+To build a test target directly, supply the same shared script context as Compose:
+
+```bash
+sim_source=../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim
+docker buildx build --build-arg ROS_DISTRO=jazzy --build-arg RMW=cyclonedds \
+  --build-context container_common=./common --target test \
+  -f "$sim_source/docker/Dockerfile" "$sim_source"
+
+robot_source=../rob4_fraunhofer_ws/src/curtmini_piper
+docker buildx build --build-arg ROS_DISTRO=jazzy --build-arg RMW=cyclonedds \
+  --build-context container_common=./common --target moveitpy-test \
+  -f "$robot_source/docker/Dockerfile" "$robot_source"
+```
+
+The robot's other test targets are `hardware-test`, `moveit-rviz-test`, and
+`teleop-test`. Adjust the paths above if your checkout layout differs.
 `ROS_IMAGE` can override the derived `ros:<distro>-ros-base-noble` base image.
-When a branch such as `main` advances without a manifest change, rebuild with
-`docker compose ... build --no-cache gz-sim` to refresh the Git checkout inside
-the image. Docker's cached import layer does not check for newer commits.
+
+An unchanged import layer can be cached even when its GitHub branch advances.
+To refresh the simulation's downloaded dependencies:
+
+```bash
+docker compose -f compose.yaml -f compose.cyclonedds.yaml build --no-cache gz-sim
+```
+
+Then recreate the service with the appropriate `up` command.
 
 ## Local simulation workspace
 
@@ -118,8 +145,10 @@ Set the checkout paths in `.env` if they differ from `.env.example`, then build
 the development image once and compile the workspace:
 
 ```bash
-docker compose -f compose.yaml -f compose.workspace.yaml build workspace-builder
-docker compose -f compose.yaml -f compose.workspace.yaml run --rm workspace-builder
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml build workspace-builder
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.workspace.yaml run --rm workspace-builder
 ```
 
 The default source layout matches `project-docs/dependencies.repos`:
@@ -140,9 +169,11 @@ simulation path and add `NEO_GZ_WORLDS_SOURCE` from `.env.example`.
 are read-only. The builder installs both the simulator and the Neobotix models
 into the shared install volume; runtime containers use that installed copy.
 
-Run Gazebo, then start RViz in another terminal:
+Run Gazebo, then start RViz in another terminal with matching distro, middleware,
+and ROS domain settings:
 
 ```bash
+xhost +si:localuser:root
 docker compose -f compose.yaml -f compose.cyclonedds.yaml \
   -f compose.workspace.yaml -f compose.gui.yaml \
   up gz-sim
@@ -155,10 +186,16 @@ docker compose -f compose.yaml -f compose.cyclonedds.yaml \
   -f compose.workspace.yaml run --rm moveitpy-sim
 ```
 
-After source or checkout-path changes, rerun `workspace-builder`; no image
-rebuild is needed. Rebuild the workspace image only when its ROS or system
-dependencies change. Use `--profile '*' down -v` with the workspace overlay when dependency
-revisions change or stale build output must be removed.
+After source or checkout-path changes, stop affected services, rerun
+`workspace-builder`, and restart them with the workspace overlay. Rebuild the
+workspace image when its package lists change. The dependency helper reads the
+mounted owners' manifests, imports missing dependencies, and retains existing
+checkouts; a changed manifest does not update those cached checkouts.
+
+Using `--profile '*' down -v` with the workspace overlay removes the project
+containers and workspace volumes, including cached dependencies and build output.
+It leaves the host source checkouts intact. Rebuild the workspace before launching
+again after such a reset.
 
 ## CycloneDDS
 
@@ -178,7 +215,7 @@ For Gazebo and the standalone MoveIt RViz client through X11, append
 `compose.gui.yaml` and name both services:
 
 ```bash
-xhost +local:docker
+xhost +si:localuser:root
 docker compose \
   -f compose.yaml \
   -f compose.cyclonedds.yaml \
@@ -190,8 +227,10 @@ The `gz-sim` service owns `move_group`, the simulated controllers, and Gazebo.
 The `moveit-rviz-sim` service waits for `/move_action` and then starts only
 RViz. This prevents a second MoveIt server from being launched.
 
-Add `/dev/dri` through a local override when hardware-accelerated rendering is
-required.
+The current containers run as root; the X11 rule above allows their GUI clients
+to use the desktop display. The GUI definitions already pass `/dev/dri` for GPU
+access. RViz defaults to `LIBGL_ALWAYS_SOFTWARE=0`; set it to `1` only when you
+need software rendering.
 
 ## Mapping world and lidar
 
@@ -199,15 +238,10 @@ required.
 environment). Both the regular image and local workspace install these worlds.
 The simulator requires `neo_gz_worlds` at startup even for the default world.
 
-**Current mapping-world limitation:** with simulator revision `ede003e` and
-`neo_gz_worlds` revision `acfcd70`, Gazebo cannot load the office world. The
-sources lack `window_broken`, `office_chair_red`, `office_chair_green`, `couch`,
-and `office_desk`. The world references `office_env_w1` and `office_env_w2`,
-but the supplied directories are named `office_env_w 1` and `office_env_w 2`.
-Repeated unnamed door/window includes in `office_env` also produce duplicate
-model-name errors. These source assets need repair before the mapping command
-below can run successfully. The default `curtmini_piper` world passes the
-Jazzy/CycloneDDS runtime check with Hokuyo enabled.
+The simulation manifests select `neo_gz_worlds: gz-harmonic`, which provides the
+office assets. If an older image reports missing furniture or window models,
+check the selected manifest and rebuild without cache. For the workspace workflow,
+check the local `neo_gz_worlds` branch and rerun `workspace-builder`.
 
 Start the mapping world with Gazebo and the standalone MoveIt RViz client:
 
@@ -327,7 +361,7 @@ For only the Piper arm hardware, MoveIt, and RViz, use `piper-bringup`:
 
 ```bash
 export RMW=cyclonedds
-xhost +local:docker
+xhost +si:localuser:root
 docker compose \
   -f compose.yaml \
   -f compose.cyclonedds.yaml \
@@ -347,7 +381,7 @@ for profile and visualization details.
 Run RViz against an already active simulation:
 
 ```bash
-xhost +local:docker
+xhost +si:localuser:root
 docker compose \
   -f compose.yaml \
   -f "compose.${RMW}.yaml" \
@@ -358,7 +392,7 @@ docker compose \
 Run RViz against an already active real robot:
 
 ```bash
-xhost +local:docker
+xhost +si:localuser:root
 docker compose \
   -f compose.yaml \
   -f "compose.${RMW}.yaml" \
@@ -395,7 +429,8 @@ time. Change `ROS_DOMAIN_ID` when both must run on one host.
 
 ## Validation
 
-Validate source locks, Dockerfile stages, the Compose matrix, and built images:
+Validate repository-owned source manifests, Dockerfile stages, the Compose matrix,
+and built images:
 
 ```bash
 ./scripts/validate-locks.sh
@@ -408,8 +443,6 @@ Compose validation covers both distros and middleware variants, with and without
 the workspace and GUI overlays, including nondefault world, lidar, and spawn
 settings. Image verification checks both installed worlds and their referenced
 Neobotix models.
-The asset check currently fails for the mapping-world source issues described
-above; rebuilding the same revisions does not repair missing models.
 
 With `gz-sim` running, check advancing `/clock`, combined `/joint_states`, all
 three active controllers, the `/move_action` server, and valid `/scan` data:
@@ -425,7 +458,7 @@ the resolved `SIM_USE_HOKUYO` setting and skips lidar only when explicitly
 disabled. `SIM_CHECK_TIMEOUT` defaults to 120 seconds. No motion commands or
 controller state changes are issued by the check.
 
-Update one distro's existing lock entries from local Git checkouts:
+To explicitly pin one distro's repository-owned source manifests to local commits:
 
 ```bash
 ./scripts/update-locks.sh /path/to/workspace/src jazzy
@@ -433,11 +466,12 @@ Update one distro's existing lock entries from local Git checkouts:
 
 Checkout discovery supports nested grouping directories such as
 `curtmini_piper_simulation` and `piper_driver`. Flat paths are preferred;
-otherwise a repository basename must match exactly one checkout. Every lock
+otherwise a repository basename must match exactly one checkout. Every manifest
 entry must be present locally, including hardware dependencies. Missing or
-ambiguous checkouts fail before the manifest is written.
+ambiguous checkouts fail before either owner's manifest is written. This command
+replaces branch names with commit SHAs; skip it when you want to track branches.
 
-Review and commit lock changes explicitly. A later GitHub Actions workflow can
+Review and commit manifest changes in the owning repositories explicitly. A later GitHub Actions workflow can
 use a distro, RMW, and image matrix, with headless Gazebo, MoveIt RViz launch,
 MoveItPy, and teleop tests. Hardware execution still requires a self-hosted
 runner connected to the robot.
