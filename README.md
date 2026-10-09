@@ -479,6 +479,6 @@ runner connected to the robot.
 ## Curt Mini package split
 
 RViz and MoveItPy build `curt_mini_description`; Gazebo also builds
-`curt_mini_teleop`. Hardware bringup builds `curt_mini`. Description and
+`curt_mini_teleop`. Hardware bringup builds `curt_mini_bringup`. Description and
 teleoperation users therefore do not depend on `ipa_ros2_control`, and the
 Dockerfiles no longer edit the package manifest during a build.
