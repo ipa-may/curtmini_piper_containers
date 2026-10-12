@@ -116,3 +116,27 @@ services:
       <<: *zenoh-environment
     volumes:
       - *zenoh-volume
+
+  mapping-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  nav2-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  nav2-rviz-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume

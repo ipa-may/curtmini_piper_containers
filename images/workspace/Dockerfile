@@ -11,13 +11,14 @@ COPY --from=simulation_source docker/ros-packages.txt /tmp/gazebo.txt
 COPY --from=robot_source docker/moveit-base/ros-packages.txt /tmp/moveit-base.txt
 COPY --from=robot_source docker/moveit-rviz/ros-packages.txt /tmp/rviz.txt
 COPY --from=robot_source docker/moveitpy/ros-packages.txt /tmp/moveitpy.txt
+COPY --from=robot_source docker/navigation/ros-packages.txt /tmp/navigation.txt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       build-essential cmake git ca-certificates python3-yaml \
       libusb-1.0-0-dev \
       python3-colcon-common-extensions python3-rosdep python3-vcstool \
       "ros-${ROS_DISTRO}-rmw-${RMW}-cpp" \
-    && cat /tmp/gazebo.txt /tmp/moveit-base.txt /tmp/rviz.txt /tmp/moveitpy.txt \
+    && cat /tmp/gazebo.txt /tmp/moveit-base.txt /tmp/rviz.txt /tmp/moveitpy.txt /tmp/navigation.txt \
       | sort -u | sed "s|^|ros-${ROS_DISTRO}-|" \
       | xargs apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/*.txt

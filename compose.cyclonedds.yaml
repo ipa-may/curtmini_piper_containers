@@ -1,3 +1,16 @@
+# CycloneDDS communication settings for the application services below.
+# Service names match those defined in the robot and simulator docker/compose.yaml
+# files, which the root compose.yaml includes. This file adds settings to those
+# services; it does not start all of them or define their images and commands.
+#
+# Select this file once in .env, for example:
+# RMW=cyclonedds
+# COMPOSE_FILE=compose.yaml:compose.cyclonedds.yaml:compose.gui.yaml
+# Then choose services by name: docker compose up piper-bringup moveit-rviz-hardware
+# See README_compose_service.md for the service reference.
+# workspace-builder is in compose.workspace.yaml; it builds code and needs no DDS
+# configuration. zenoh-router belongs to the alternative compose.zenoh.yaml.
+
 x-cyclonedds-environment: &cyclonedds-environment
   CYCLONEDDS_URI: file:///etc/curtmini-piper/cyclonedds.xml
 
@@ -8,61 +21,92 @@ x-cyclonedds-volume: &cyclonedds-volume
   read_only: true
 
 services:
+  # Gazebo simulation: robot, simulated controllers and MoveIt server.
   gz-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Real Curt Mini base and Piper arm: hardware drivers and MoveIt server.
   real-bringup:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Real Piper arm only: hardware and MoveIt, without base, IMU or joystick.
   piper-bringup:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # MoveIt RViz window for viewing and planning arm motions in simulation.
   moveit-rviz-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # MoveIt RViz window connected to real-bringup or piper-bringup.
   moveit-rviz-hardware:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Python example for planning or executing simulated arm motions.
   moveitpy-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Python example for the real arm; plans only unless execution is enabled.
   moveitpy-hardware:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Interactive keyboard control of the simulated mobile base.
   keyboard-teleop-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Interactive keyboard control of the real mobile base through its command mux.
   keyboard-teleop-hardware:
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
 
+  # Interactive shell with ROS tools for inspecting nodes, topics and services.
   ros-cli:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  # SLAM Toolbox: builds a map from the simulated lidar while you drive.
+  mapping-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  # AMCL and Nav2: localizes on a saved map and drives to goal poses.
+  nav2-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  # Navigation RViz window: map, lidar, initial-pose and goal tools.
+  nav2-rviz-sim:
     environment:
       <<: *cyclonedds-environment
     volumes:

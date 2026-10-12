@@ -3,6 +3,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${repo_root}/common/compose-settings.sh"
+load_compose_settings
 
 python3 - "${repo_root}" <<'PY'
 from pathlib import Path
@@ -27,7 +29,7 @@ required = {
     "curtmini_piper": {"curt_mini", "agx_arm_urdf", "agx_arm_ros", "candle_ros2", "openzenros2"},
     "curtmini_piper_gz_sim": {"curt_mini", "curtmini_piper", "agx_arm_urdf", "neo_gz_worlds"},
 }
-for distro in ("jazzy", "kilted"):
+for distro in ("jazzy",):
     versions = {}
     for owner, root in owners.items():
         lock_file = root / "docker/dependencies" / f"{distro}.repos"
@@ -77,7 +79,7 @@ for dockerfile in sorted(dockerfiles):
     stages = ("runtime",) if dockerfile.parent.name == "workspace" else required_stages
     if dockerfile == owners["curtmini_piper"] / "docker/Dockerfile":
         stages = ("ros-base", "moveit-base", "robot-builder", "moveitpy-builder",
-                  "hardware-builder", "teleop", "moveit-rviz", "moveitpy", "hardware",
+                  "hardware-builder", "navigation-base", "navigation-builder", "navigation", "teleop", "moveit-rviz", "moveitpy", "hardware",
                   "teleop-test", "moveit-rviz-test", "moveitpy-test", "hardware-test")
     for stage in stages:
         if not re.search(rf"\bAS {stage}\s*$", text, re.IGNORECASE | re.MULTILINE):

@@ -1,4 +1,4 @@
-"""Import only dependencies not supplied by the local workspace mounts."""
+"""Import simulation dependencies not supplied by the local workspace mounts."""
 from pathlib import Path
 import os
 import subprocess
@@ -7,7 +7,7 @@ import yaml
 local = {"agx_arm_urdf", "curt_mini", "curtmini_piper", "curtmini_piper_gz_sim",
          "neo_gz_worlds"}
 repositories = {}
-for owner in ("curtmini_piper", "curtmini_piper_gz_sim"):
+for owner in ("curtmini_piper_gz_sim",):
     root = Path("/opt/ws/src") / owner
     manifest_file = root / "docker/dependencies" / f"{os.environ['ROS_DISTRO']}.repos"
     if not manifest_file.is_file():

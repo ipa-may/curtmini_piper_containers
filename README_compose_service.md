@@ -15,8 +15,11 @@ and middleware services.
 | `moveitpy-hardware` | `hardware-tools` | MoveItPy example for the real robot |
 | `keyboard-teleop-sim` | `simulation-tools` | Keyboard control for the simulated base |
 | `keyboard-teleop-hardware` | `hardware-tools` | Keyboard control through the hardware command mux |
+| `mapping-sim` | `mapping` | Builds a map using SLAM Toolbox |
+| `nav2-sim` | `navigation` | Localizes on a saved map and follows goal poses |
+| `nav2-rviz-sim` | `navigation-tools` | Displays maps and provides initial-pose, goal and cancel controls |
 | `ros-cli` | `tools` | Interactive ROS shell |
-| `workspace-builder` | `workspace` | Builds mounted local sources into the shared install volume |
+| `workspace-builder` | `workspace` | Builds simulation, navigation and MoveIt examples, excluding hardware bringup and drivers |
 | `zenoh-router` | none | Local Zenoh router added by `compose.zenoh.yaml` |
 
 `workspace-builder` is defined in `compose.workspace.yaml` and `zenoh-router`
@@ -30,9 +33,10 @@ and one MoveIt server. `SIM_WORLD=curtmini_piper_map` selects the office world;
 the default is `curtmini_piper`. Both worlds and their `neo_gz_worlds` model
 assets are installed in the Gazebo image and local workspace install.
 
-`SIM_USE_HOKUYO` defaults to `true`, enabling `/scan`. `SIM_SPAWN_X`,
-`SIM_SPAWN_Y`, `SIM_SPAWN_Z`, and `SIM_SPAWN_YAW` control the initial pose.
-These settings also apply when `compose.gui.yaml` enables the Gazebo window.
+`SIM_USE_HOKUYO` defaults to `true`, enabling `/scan` and the lidar model in
+simulation RViz and MoveItPy. Set the initial base pose and arm joints in the
+simulator's `config/initial_state.yaml`. These settings apply with or without
+the Gazebo window.
 See [mapping world and lidar](README.md#mapping-world-and-lidar) for startup,
 keyboard driving, and controller recovery commands.
 
@@ -75,7 +79,7 @@ starting.
 | Backend | `gz-sim` | `real-bringup` or `piper-bringup` |
 | Profile | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |
-| Workspace overlay | Development image with shared local install | Regular image with shared local install |
+| Workspace overlay | Development image with shared local install | Regular image with its own install |
 
 RViz is only a client. The corresponding backend provides `move_group`, robot
 state, and controllers.
@@ -92,7 +96,7 @@ check, network, and ROS environment. Both wait for `/joint_states` and use
 | Profile | `simulation-tools` | `hardware-tools` |
 | Controller mode | `simulation` | `hardware` |
 | ROS time | `use_sim_time:=true` | `use_sim_time:=false` |
-| Workspace overlay | Development image with shared local install | Regular image with shared local install |
+| Workspace overlay | Development image with shared local install | Regular image with its own install |
 
 Start the appropriate backend before its RViz, MoveItPy, or keyboard client.
 
@@ -101,3 +105,19 @@ Start the appropriate backend before its RViz, MoveItPy, or keyboard client.
 `keyboard-teleop-sim` publishes to `/base_controller/cmd_vel`.
 `keyboard-teleop-hardware` publishes to `/cmd_vel`, which hardware bringup processes
 through `twist_mux`.
+
+
+## Gz-Sim
+
+Copy `.env.example` to `.env`. 
+
+```sh
+SIM_WORLD=curtmini_piper_map docker compose up gz-sim moveit-rviz-sim 
+```
+## Navigation
+
+Start `mapping-sim` while driving with keyboard teleoperation, save the map,
+then stop both mapping and teleoperation before starting `nav2-sim`.
+Use `nav2-rviz-sim` for both workflows. Maps persist in
+`curtmini_piper/curtmini_piper_navigation/maps/` on the host.
+See the [navigation guide](../rob4_fraunhofer_ws/src/curtmini_piper/curtmini_piper_navigation/README.md) for commands.

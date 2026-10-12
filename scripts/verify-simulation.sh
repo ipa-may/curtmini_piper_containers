@@ -2,6 +2,8 @@
 set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
+source "${repo_root}/common/compose-settings.sh"
+load_compose_settings
 
 # Extra arguments are Compose options, e.g. -f compose.workspace.yaml.
 compose=(docker compose -f compose.yaml -f "compose.${RMW:-cyclonedds}.yaml" "$@")

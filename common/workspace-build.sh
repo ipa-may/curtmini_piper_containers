@@ -9,7 +9,7 @@ colcon --log-base /opt/ws/log build \
   --build-base /opt/ws/build --install-base /opt/ws/install \
   --merge-install \
   --packages-up-to \
-    curtmini_piper_bringup \
     curtmini_piper_gz_sim \
     curtmini_piper_motion_examples \
+    curtmini_piper_navigation \
   --cmake-args -DCMAKE_BUILD_TYPE=Release "$@"

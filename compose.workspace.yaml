@@ -67,24 +67,23 @@ services:
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]
-  real-bringup:
-    environment:
-      REQUIRE_WORKSPACE_INSTALL: "1"
-    volumes: [*install]
-  piper-bringup:
-    environment:
-      REQUIRE_WORKSPACE_INSTALL: "1"
-    volumes: [*install]
-  moveit-rviz-hardware:
-    environment:
-      REQUIRE_WORKSPACE_INSTALL: "1"
-    volumes: [*install]
   moveitpy-sim:
     <<: *workspace-image
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]
-  moveitpy-hardware:
+  mapping-sim:
+    <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  nav2-sim:
+    <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  nav2-rviz-sim:
+    <<: *workspace-image
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]

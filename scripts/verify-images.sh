@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${repo_root}/common/compose-settings.sh"
+load_compose_settings
+
 image_prefix="${IMAGE_PREFIX:-curtmini-piper}"
 ros_distro="${CONTAINER_ROS_DISTRO:-jazzy}"
 rmw="${RMW:-cyclonedds}"
@@ -57,7 +61,14 @@ docker run --rm "${image_prefix}-moveitpy:${image_tag}" \
 docker run --rm "${image_prefix}-teleop:${image_tag}" \
   ros2 pkg prefix teleop_twist_keyboard
 
-for image in gazebo hardware moveit-rviz moveitpy teleop; do
+docker run --rm "${image_prefix}-navigation:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_navigation
+docker run --rm "${image_prefix}-navigation:${image_tag}" \
+  ros2 pkg prefix slam_toolbox
+docker run --rm "${image_prefix}-navigation:${image_tag}" \
+  ros2 launch curtmini_piper_navigation navigation.launch.py --show-args
+
+for image in gazebo hardware moveit-rviz moveitpy teleop navigation; do
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
     bash -c "test ! -d /opt/ws/src"
   docker run --rm "${image_prefix}-${image}:${image_tag}" \

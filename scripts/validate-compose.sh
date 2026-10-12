@@ -11,12 +11,8 @@ import subprocess
 settings = {
     "SIM_WORLD": ("world", "curtmini_piper", "curtmini_piper_map"),
     "SIM_USE_HOKUYO": ("use_hokuyo", "true", "false"),
-    "SIM_SPAWN_X": ("spawn_x", "0.0", "1.25"),
-    "SIM_SPAWN_Y": ("spawn_y", "-2.0", "-3.5"),
-    "SIM_SPAWN_Z": ("spawn_z", "0.16", "0.25"),
-    "SIM_SPAWN_YAW": ("spawn_yaw", "0.0", "1.57"),
 }
-for distro in ("jazzy", "kilted"):
+for distro in ("jazzy",):
     for rmw in ("cyclonedds", "zenoh"):
         for workspace in (False, True):
             for gui in (False, True):
@@ -46,7 +42,47 @@ for distro in ("jazzy", "kilted"):
                             raise SystemExit(f"Missing {argument}: {command}")
                     if sim["environment"]["RMW_IMPLEMENTATION"] != f"rmw_{rmw}_cpp":
                         raise SystemExit(f"Incorrect simulation middleware: {command}")
+                    lidar = "false" if custom else "true"
+                    if f"use_hokuyo:={lidar}" not in services["moveit-rviz-sim"]["command"]:
+                        raise SystemExit("RViz lidar setting differs from simulation")
+                    if f"use_hokuyo:={lidar}" not in services["moveitpy-sim"]["command"]:
+                        raise SystemExit("MoveItPy lidar setting differs from simulation")
+                    for name in ("mapping-sim", "nav2-sim", "nav2-rviz-sim"):
+                        service = services[name]
+                        if service["environment"]["RMW_IMPLEMENTATION"] != f"rmw_{rmw}_cpp":
+                            raise SystemExit(f"Incorrect navigation middleware: {name}")
+                        if not any(v["target"].startswith("/etc/curtmini-piper/")
+                                   for v in service.get("volumes", [])):
+                            raise SystemExit(f"Navigation missing middleware configuration: {name}")
+                    mapping = next(v for v in services["mapping-sim"]["volumes"]
+                                   if v["target"] == "/maps")
+                    navigation = next(v for v in services["nav2-sim"]["volumes"]
+                                      if v["target"] == "/maps")
+                    if mapping["source"] != navigation["source"] or mapping.get("read_only", False):
+                        raise SystemExit("Mapping must save to the shared host map directory")
+                    if not navigation.get("read_only"):
+                        raise SystemExit("Navigation map mount must be read-only")
+                    if "map:=/maps/map.yaml" not in services["nav2-sim"]["command"]:
+                        raise SystemExit("Unexpected default navigation map")
+                    if gui and "DISPLAY" not in services["nav2-rviz-sim"]["environment"]:
+                        raise SystemExit("Navigation RViz missing GUI configuration")
                     if workspace:
+                        for name in ("real-bringup", "piper-bringup",
+                                     "moveit-rviz-hardware", "moveitpy-hardware"):
+                            service = services[name]
+                            if "REQUIRE_WORKSPACE_INSTALL" in service["environment"]:
+                                raise SystemExit(f"Hardware requires workspace: {name}")
+                            if any(v["target"] == "/opt/ws/install"
+                                   for v in service.get("volumes", [])):
+                                raise SystemExit(f"Hardware mounts workspace: {name}")
+                        for name in ("gz-sim", "moveit-rviz-sim", "moveitpy-sim",
+                                     "mapping-sim", "nav2-sim", "nav2-rviz-sim"):
+                            service = services[name]
+                            if service["environment"].get("REQUIRE_WORKSPACE_INSTALL") != "1":
+                                raise SystemExit(f"Simulation missing workspace: {name}")
+                            if not any(v["target"] == "/opt/ws/install" and v["read_only"]
+                                       for v in service.get("volumes", [])):
+                                raise SystemExit(f"Simulation missing install mount: {name}")
                         mounts = {v["target"]: v for v in
                                   services["workspace-builder"]["volumes"]}
                         for package in ("curtmini_piper_gz_sim", "neo_gz_worlds"):

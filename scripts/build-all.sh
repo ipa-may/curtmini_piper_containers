@@ -5,17 +5,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
-export CONTAINER_ROS_DISTRO="${CONTAINER_ROS_DISTRO:-jazzy}"
-export RMW="${RMW:-cyclonedds}"
-
-case "${RMW}" in
-  cyclonedds|zenoh)
-    ;;
-  *)
-    echo "Unsupported RMW '${RMW}'; expected cyclonedds or zenoh" >&2
-    exit 2
-    ;;
-esac
+source "${repo_root}/common/compose-settings.sh"
+load_compose_settings
 
 services=(
   gz-sim
@@ -23,6 +14,7 @@ services=(
   moveit-rviz-sim
   moveitpy-sim
   keyboard-teleop-sim
+  nav2-sim
 )
 
 if [[ "${RMW}" == "zenoh" ]]; then

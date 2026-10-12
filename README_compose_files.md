@@ -18,9 +18,9 @@ Paths inside included application files are resolved relative to those files.
 
 ## Application services
 
-`curtmini_piper/docker/compose.yaml` defines hardware, RViz, MoveItPy, teleop, and
-ROS CLI services. Its builds select one of four targets from `docker/Dockerfile`:
-`hardware`, `moveit-rviz`, `moveitpy`, or `teleop`.
+`curtmini_piper/docker/compose.yaml` defines hardware, RViz, MoveItPy, teleop, navigation, and
+ROS CLI services. Its builds select one of five targets from `docker/Dockerfile`:
+`hardware`, `moveit-rviz`, `moveitpy`, `teleop`, or `navigation`.
 
 `curtmini_piper_gz_sim/docker/compose.yaml` defines `gz-sim` and its Gazebo build.
 Gazebo is headless by default (`gui:=false`). It starts MoveIt and controllers;
@@ -32,7 +32,7 @@ See [Compose services](README_compose_service.md) for the service names and role
 Use one middleware overlay, matching `RMW`: `compose.cyclonedds.yaml` or
 `compose.zenoh.yaml`. The GUI overlay includes application settings for `DISPLAY`,
 the X11 socket, and `/dev/dri`. It enables the Gazebo window and passes world,
-lidar, and spawn settings. RViz defaults to hardware rendering; use
+and lidar settings. Initial pose comes from the simulator's `config/initial_state.yaml`. RViz defaults to hardware rendering; use
 `LIBGL_ALWAYS_SOFTWARE=1` for its software-rendering fallback.
 
 For example, launch the office world and RViz with the regular application images:
@@ -51,8 +51,9 @@ files are overlays and must be combined with the base configuration.
 
 ## Workspace overlay
 
-Use this optional workflow to compile mounted local repositories into a shared
-install volume. Build it before starting any service that uses the volume:
+Use this optional workflow to compile simulation, navigation and MoveIt example packages
+from mounted local repositories into a shared install volume. Hardware bringup
+and drivers are excluded. Build it before starting any service that uses the volume:
 
 ```bash
 docker compose -f compose.yaml -f compose.cyclonedds.yaml \
@@ -69,8 +70,8 @@ The simulator and `neo_gz_worlds` default to checkouts under
 `src/curtmini_piper_simulation/`. Source mounts are read-only; the builder writes
 compiled packages to named volumes. Rerun it after editing local source, then
 restart affected services with the overlay. Gazebo and simulation tools use the
-development image; hardware services retain their normal images with the shared
-installation mounted over `/opt/ws/install`.
+development image; hardware services use the installation in their own images
+and do not mount the shared workspace installation.
 
 Without this overlay, application builds copy their owning repository locally
 and import upstream sources from repository-owned manifests. See
@@ -83,4 +84,15 @@ and import upstream sources from repository-owned manifests. See
 precedence. An exported `COMPOSE_FILE` such as
 `compose.yaml:compose.cyclonedds.yaml:compose.gui.yaml` replaces repeated `-f`
 arguments. Export it in each terminal, or set it in `.env`. Explicit `-f`
-arguments override that selection. `.env.example` does not set `COMPOSE_FILE`.
+arguments override that selection. `.env.example` selects CycloneDDS, the
+workspace overlay, and GUI support; build `workspace-builder` before launching
+that configuration. For regular application images, omit `compose.workspace.yaml`.
+Changing `RMW` also requires selecting its matching middleware overlay.
+
+Build and verification helper scripts resolve settings through Compose, honoring
+`.env` and shell overrides. `build-all.sh` builds the regular application images;
+`verify-simulation.sh` accepts extra `-f` options for the workspace overlay.
+
+Navigation services are part of the robot’s existing `docker/compose.yaml`.
+They use the same middleware, workspace and GUI files as the other simulation
+services; no additional overlay is needed.
