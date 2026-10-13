@@ -11,6 +11,7 @@ load_compose_settings
 services=(
   gz-sim
   real-bringup
+  realsense-base
   moveit-rviz-sim
   moveitpy-sim
   keyboard-teleop-sim

@@ -18,11 +18,20 @@ Paths inside included application files are resolved relative to those files.
 
 ## Application services
 
-`curtmini_piper/docker/compose.yaml` defines hardware, RViz, MoveItPy, teleop, navigation, and
-ROS CLI services. Its builds select one of five targets from `docker/Dockerfile`:
-`hardware`, `moveit-rviz`, `moveitpy`, `teleop`, or `navigation`.
+`curtmini_piper/docker/compose.yaml` defines hardware, RealSense, RViz, MoveItPy,
+teleop, navigation, and ROS CLI services. Its builds select one of six targets from
+`docker/Dockerfile`: `hardware`, `moveit-rviz`, `moveitpy`, `teleop`, `navigation`,
+or `sensors`.
 
 `curtmini_piper_gz_sim/docker/compose.yaml` defines `gz-sim` and its Gazebo build.
+Regular application builds use the robot and simulator repositories' upstream
+`main` branches. Gazebo still reads the local `geometry.yaml` and
+`initial_state.yaml` mount settings at runtime. Local simulator code is built
+by the workspace workflow below.
+Compose still loads service definitions from the local checkouts, so edits to
+their `docker/compose.yaml` files can change commands, mounts, and build settings
+for regular services. Physical camera mounts and navigation maps are local
+runtime inputs too.
 Gazebo is headless by default (`gui:=false`). It starts MoveIt and controllers;
 RViz is a separate client, so the simulation uses `use_rviz:=false`.
 See [Compose services](README_compose_service.md) for the service names and roles.
@@ -73,8 +82,8 @@ restart affected services with the overlay. Gazebo and simulation tools use the
 development image; hardware services use the installation in their own images
 and do not mount the shared workspace installation.
 
-Without this overlay, application builds copy their owning repository locally
-and import upstream sources from repository-owned manifests. See
+Without this overlay, application builds fetch their owning repository from
+upstream `main` and import dependencies from repository-owned manifests. See
 [source inputs](README.md#source-inputs) and
 [local workspace details](README.md#local-simulation-workspace).
 

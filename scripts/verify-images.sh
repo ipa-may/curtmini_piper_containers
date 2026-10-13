@@ -14,6 +14,7 @@ expected_rmw="rmw_${rmw}_cpp"
 
 docker image inspect "${image_prefix}-gazebo:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-hardware:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-sensors:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-moveit-rviz:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-moveitpy:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-teleop:${image_tag}" >/dev/null
@@ -45,6 +46,10 @@ print("Both packaged worlds and their model assets are installed")
 PY
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   ros2 pkg prefix curtmini_piper_bringup
+docker run --rm "${image_prefix}-sensors:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_sensors
+docker run --rm "${image_prefix}-sensors:${image_tag}" \
+  ros2 pkg prefix realsense2_camera
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   python3 -c "import pyAgxArm"
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
@@ -68,7 +73,7 @@ docker run --rm "${image_prefix}-navigation:${image_tag}" \
 docker run --rm "${image_prefix}-navigation:${image_tag}" \
   ros2 launch curtmini_piper_navigation navigation.launch.py --show-args
 
-for image in gazebo hardware moveit-rviz moveitpy teleop navigation; do
+for image in gazebo hardware sensors moveit-rviz moveitpy teleop navigation; do
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
     bash -c "test ! -d /opt/ws/src"
   docker run --rm "${image_prefix}-${image}:${image_tag}" \

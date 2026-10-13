@@ -1,7 +1,7 @@
 # Curt Mini Piper Containers
 
 Compose entry point and shared tooling for Curt Mini with a Piper arm. Application
-Dockerfiles and services are maintained in their owning source repositories. The repository targets ROS 2 Jazzy with CycloneDDS or Zenoh. Nav2 mapping and goal navigation are available in simulation; RealSense is outside its scope.
+Dockerfiles and services are maintained in their owning source repositories. The repository targets ROS 2 Jazzy with CycloneDDS or Zenoh. Nav2 mapping and goal navigation are available in simulation, along with two D435i-like cameras. Two optional RealSense services run physical cameras.
 
 See [Compose file structure](README_compose_files.md) for how the base file and
 optional overlays are combined, and [Compose services](README_compose_service.md)
@@ -36,14 +36,15 @@ Images are tagged `jazzy-<rmw>`, for example:
 | --- | --- |
 | `curtmini-piper-gazebo:jazzy-cyclonedds` | Gazebo, simulated controllers, and MoveIt |
 | `curtmini-piper-hardware:jazzy-cyclonedds` | Curt Mini and Piper hardware bringup with MoveIt |
+| `curtmini-piper-sensors:jazzy-cyclonedds` | Two separately selectable physical D435i cameras |
 | `curtmini-piper-moveit-rviz:jazzy-cyclonedds` | Standalone MoveIt RViz client |
 | `curtmini-piper-moveitpy:jazzy-cyclonedds` | MoveItPy planning and execution examples |
 | `curtmini-piper-navigation:jazzy-cyclonedds` | SLAM Toolbox, Nav2 and navigation RViz |
 | `curtmini-piper-teleop:jazzy-cyclonedds` | Keyboard teleoperation and ROS CLI |
 | `curtmini-piper-zenoh-router:jazzy-zenoh` | Robot-side Zenoh router |
 
-`curtmini_piper/docker/Dockerfile` produces five runtime targets: `hardware`,
-`moveit-rviz`, `moveitpy`, `teleop`, and `navigation`. They share the ROS base; the first three
+`curtmini_piper/docker/Dockerfile` produces six runtime targets: `hardware`,
+`moveit-rviz`, `moveitpy`, `teleop`, `navigation`, and `sensors`. They share the ROS base; the first three
 also share MoveIt dependencies and the common robot build. The original four targets have optional `<target>-test` stages.
 
 `curtmini_piper_gz_sim/docker/Dockerfile` and the infrastructure's Zenoh Dockerfile
@@ -60,12 +61,14 @@ The root `compose.yaml` includes the Compose files from:
 - `../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim/docker/`
 
 Each owner maintains its Dockerfile, package lists, Compose services, and GUI
-settings. Image builds copy the owner's local checkout and clone upstream
-repositories from its `dependencies.repos`. Hardware's Python SDK revision lives
+settings. Regular image builds fetch the owning repository from upstream
+`main` and clone dependencies from its `dependencies.repos`. Hardware's Python SDK revision lives
 in the robot repository's `docker/dependencies/jazzy-hardware-python.env`.
 
-For example, a regular Gazebo image uses the local simulator code but imports
-`curtmini_piper`, `curt_mini`, `agx_arm_urdf`, and `neo_gz_worlds` from GitHub.
+For example, a regular Gazebo image fetches the simulator and robot code from
+upstream `main`. It imports `curt_mini`, `agx_arm_urdf`, and `neo_gz_worlds`
+from GitHub. The local robot `geometry.yaml` and simulator
+`initial_state.yaml` remain runtime mount settings.
 The teleop target installs binary packages and skips the source-build stages.
 `project-docs/dependencies.repos` creates the host checkout layout.
 
@@ -81,8 +84,9 @@ must exist. For another directory layout, adjust `CURTMINI_PIPER_SOURCE` and
 `CURTMINI_PIPER_GZ_SIM_SOURCE`, and set `CONTAINER_INFRA_SOURCE` to this
 infrastructure repository's absolute path for the shared build scripts.
 
-Rebuild an application image to use edits in its own checkout. Use the workspace
-overlay below when you want multiple mounted repositories built together.
+Use the workspace overlay below to build edits in local checkouts. Rebuild a
+regular image after its upstream code changes; a cached Git import may require
+`docker compose build --no-cache` to fetch a new upstream `main` commit.
 Source manifests use a mixture of branches, tags, and commit SHAs. Base-image
 tags, branches, and apt packages can change.
 
@@ -282,13 +286,14 @@ headless operation. Use `compose.zenoh.yaml` and `RMW=zenoh` for Zenoh.
 | --- | --- | --- |
 | `SIM_WORLD` | `curtmini_piper` | Packaged world name |
 | `SIM_USE_HOKUYO` | `true` | Enable simulated Hokuyo and `/scan` |
+| `SIM_USE_CAMERAS` | `true` | Enable the two simulated RGBD cameras and IMUs |
 
 Set the starting base pose and arm joints in the simulator's
-`config/initial_state.yaml`. Set arm, TCP, and lidar mounts in
-`curtmini_piper_description/config/geometry.yaml`. Both config directories are
-bind-mounted; restart the affected services after editing them. Older cached
-Gazebo images may contain a robot description that does not read geometry YAML;
-rebuild with refreshed dependencies or use the local workspace overlay.
+`config/initial_state.yaml`. Set arm, TCP, lidar, and camera mounts in
+`curtmini_piper_description/config/geometry.yaml`. These local settings are
+bind-mounted; restart the affected services after editing them. Bridge and
+controller YAML files come from upstream in regular images. Use the workspace
+overlay to test local changes to those files or to robot and simulator code.
 
 These settings apply to both GUI and headless launches. An external world path
 must exist inside the container; mount its file and assets with a local override.

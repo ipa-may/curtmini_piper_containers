@@ -8,6 +8,8 @@ and middleware services.
 | --- | --- | --- |
 | `gz-sim` | `simulation` | Runs Gazebo, simulated controllers, and the MoveIt server |
 | `real-bringup` | `hardware` | Runs Curt Mini and Piper hardware bringup with the MoveIt server |
+| `realsense-base` | `hardware-cameras` | Runs the base D435i by serial number and publishes its mount TF |
+| `realsense-tool` | `hardware-cameras` | Runs the tool D435i by serial number and publishes its mount TF |
 | `piper-bringup` | `piper-hardware` | Runs only Piper hardware and the MoveIt server, with no base, IMU, or joystick |
 | `moveit-rviz-sim` | `simulation` | RViz client for `gz-sim` |
 | `moveit-rviz-hardware` | `hardware` | RViz client for `real-bringup` or `piper-bringup` |
@@ -37,8 +39,44 @@ assets are installed in the Gazebo image and local workspace install.
 simulation RViz and MoveItPy. Set the initial base pose and arm joints in the
 simulator's `config/initial_state.yaml`. These settings apply with or without
 the Gazebo window.
+`SIM_USE_CAMERAS` also defaults to `true`. It enables both simulated RGBD and
+IMU sensors plus their mount and optical TFs in `gz-sim`. The existing
+`moveit-rviz-sim` view shows the robot camera bodies and both color and depth
+images. Camera streams use `/base_camera` and `/tool_camera` topic prefixes.
+The regular Gazebo image has these streams once the simulator camera changes
+reach upstream `main`; use the workspace overlay to run local changes first.
 See [mapping world and lidar](README.md#mapping-world-and-lidar) for startup,
 keyboard driving, and controller recovery commands.
+
+Start the camera example from `curtmini_piper_containers/`:
+
+```bash
+docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.gui.yaml up --build gz-sim moveit-rviz-sim
+```
+
+Use `-f compose.workspace.yaml` after building `workspace-builder` if you are
+using the local development install. The two included Gazebo worlds already
+load the rendering and IMU systems required by the cameras.
+
+## Physical RealSense cameras
+
+The `curtmini_piper_sensors` package lives inside the robot repository. Its
+`config/camera_mounts.yaml` contains **provisional** mount offsets. Replace
+them with measured robot-to-camera poses before using hardware TFs. Set the
+two camera serials in `.env`, then start the robot and camera services:
+
+```bash
+BASE_CAMERA_SERIAL=123456789 TOOL_CAMERA_SERIAL=987654321 \
+  docker compose -f compose.yaml -f compose.cyclonedds.yaml \
+  -f compose.gui.yaml up real-bringup realsense-base realsense-tool moveit-rviz-hardware
+```
+
+Substitute the actual serial numbers. Each RealSense node publishes its own
+internal optical frames. Its service publishes only `chassis` to
+`base_camera_link` or `piper_tcp_link` to `tool_camera_link`. These camera
+services are independent of `real-bringup`, but the robot backend is needed
+for RViz to place them in the robot TF tree.
 
 ## Piper arm only
 

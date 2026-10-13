@@ -35,6 +35,18 @@ services:
     volumes:
       - *cyclonedds-volume
 
+  realsense-base:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  realsense-tool:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
   # Real Piper arm only: hardware and MoveIt, without base, IMU or joystick.
   piper-bringup:
     environment:

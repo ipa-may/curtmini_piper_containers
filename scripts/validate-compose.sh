@@ -11,6 +11,7 @@ import subprocess
 settings = {
     "SIM_WORLD": ("world", "curtmini_piper", "curtmini_piper_map"),
     "SIM_USE_HOKUYO": ("use_hokuyo", "true", "false"),
+    "SIM_USE_CAMERAS": ("use_cameras", "true", "false"),
 }
 for distro in ("jazzy",):
     for rmw in ("cyclonedds", "zenoh"):
@@ -40,8 +41,42 @@ for distro in ("jazzy",):
                     for argument in expected:
                         if argument not in sim["command"]:
                             raise SystemExit(f"Missing {argument}: {command}")
+                    for name, camera in (("realsense-base", "base_camera"),
+                                         ("realsense-tool", "tool_camera")):
+                        service = services[name]
+                        if f"camera:={camera}" not in service["command"]:
+                            raise SystemExit(f"Wrong camera selection: {name}")
+                        if service["build"]["target"] != "sensors":
+                            raise SystemExit(f"Wrong sensor image: {name}")
+                        if service["build"]["context"] != (
+                                "https://github.com/ipa-may/curtmini_piper.git#main"):
+                            raise SystemExit(f"Sensor image does not use upstream: {name}")
+                        if not any(v["target"] == "/dev/bus/usb"
+                                   for v in service["volumes"]):
+                            raise SystemExit(f"Missing USB bus: {name}")
                     if sim["environment"]["RMW_IMPLEMENTATION"] != f"rmw_{rmw}_cpp":
                         raise SystemExit(f"Incorrect simulation middleware: {command}")
+                    if not workspace:
+                        robot_source = "https://github.com/ipa-may/curtmini_piper.git#main"
+                        sim_source = "https://github.com/ipa-may/curtmini_piper_gz_sim.git#main"
+                        if sim["build"]["context"] != sim_source:
+                            raise SystemExit("Regular Gazebo build does not use upstream")
+                        if sim["build"]["additional_contexts"]["robot_source"] != robot_source:
+                            raise SystemExit("Gazebo robot source does not use upstream")
+                        for name in ("real-bringup", "piper-bringup",
+                                     "moveit-rviz-sim", "moveit-rviz-hardware",
+                                     "moveitpy-sim", "moveitpy-hardware",
+                                     "keyboard-teleop-sim", "keyboard-teleop-hardware",
+                                     "mapping-sim", "nav2-sim", "nav2-rviz-sim",
+                                     "ros-cli"):
+                            if services[name]["build"]["context"] != robot_source:
+                                raise SystemExit(f"Regular build does not use upstream: {name}")
+                        sim_mounts = {v["target"] for v in sim["volumes"]}
+                        if "/opt/ws/install/share/curtmini_piper_gz_sim/config" in sim_mounts:
+                            raise SystemExit("Gazebo overlays all upstream config")
+                        if ("/opt/ws/install/share/curtmini_piper_gz_sim/config/initial_state.yaml"
+                                not in sim_mounts):
+                            raise SystemExit("Gazebo initial pose override is missing")
                     lidar = "false" if custom else "true"
                     if f"use_hokuyo:={lidar}" not in services["moveit-rviz-sim"]["command"]:
                         raise SystemExit("RViz lidar setting differs from simulation")
@@ -68,6 +103,7 @@ for distro in ("jazzy",):
                         raise SystemExit("Navigation RViz missing GUI configuration")
                     if workspace:
                         for name in ("real-bringup", "piper-bringup",
+                                     "realsense-base", "realsense-tool",
                                      "moveit-rviz-hardware", "moveitpy-hardware"):
                             service = services[name]
                             if "REQUIRE_WORKSPACE_INSTALL" in service["environment"]:
