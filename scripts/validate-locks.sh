@@ -74,7 +74,8 @@ for distro in ("jazzy",):
         raise SystemExit("Arm and base Docker source manifests differ from dependencies.repos")
 
     python_lock = {}
-    python_lock_file = owners["curtmini_piper"] / "docker/dependencies" / f"{distro}-hardware-python.env"
+    python_lock_file = (owners["curtmini_piper"] / "curtmini_piper_bringup/docker/dependencies"
+                        / f"{distro}-hardware-python.env")
     for line in python_lock_file.read_text().splitlines():
         if line and not line.startswith("#"):
             key, value = line.split("=", 1)
@@ -89,14 +90,28 @@ required_stages = ("base", "dependencies", "builder", "test", "runtime")
 dockerfiles = list(repo_root.glob("images/*/Dockerfile"))
 for root in owners.values():
     dockerfiles.extend((root / "docker").rglob("Dockerfile"))
+    dockerfiles.extend(root.glob("*/docker/Dockerfile"))
 dockerfiles.extend(tools_root.glob("*/docker/Dockerfile"))
+robot_stages = {
+    "docker/common/Dockerfile": ("runtime",),
+    "curtmini_piper_description/docker/Dockerfile": ("dependencies", "builder", "test", "runtime"),
+    "curtmini_piper_moveit_config/docker/Dockerfile": (
+        "dependencies", "builder", "moveit-rviz-test", "config", "moveit-rviz"),
+    "curtmini_piper_bringup/docker/Dockerfile": (
+        "hardware-builder", "base-hardware-builder", "hardware", "base-hardware",
+        "teleop", "hardware-test", "teleop-test"),
+    "curtmini_piper_navigation/docker/Dockerfile": (
+        "navigation-base", "navigation-builder", "navigation"),
+    "curtmini_piper_sensors/docker/Dockerfile": ("sensors-deps", "sensors-builder", "sensors"),
+}
 for dockerfile in sorted(dockerfiles):
     text = dockerfile.read_text()
     stages = ("runtime",) if dockerfile.parent.name in ("workspace", "apriltag") else required_stages
-    if dockerfile == owners["curtmini_piper"] / "docker/Dockerfile":
-        stages = ("ros-base", "moveit-base", "robot-builder",
-                  "hardware-builder", "base-hardware-builder", "navigation-base", "navigation-builder", "navigation", "teleop", "moveit-rviz", "hardware", "base-hardware",
-                  "teleop-test", "moveit-rviz-test", "hardware-test")
+    if dockerfile.is_relative_to(owners["curtmini_piper"]):
+        relative = dockerfile.relative_to(owners["curtmini_piper"]).as_posix()
+        if relative not in robot_stages:
+            raise SystemExit(f"Unexpected robot Dockerfile: {relative}")
+        stages = robot_stages[relative]
     if dockerfile in tools_root.glob("*/docker/Dockerfile"):
         stages = ("dependencies", "builder", "runtime")
     for stage in stages:
@@ -106,6 +121,8 @@ for dockerfile in sorted(dockerfiles):
 package_files = list(repo_root.glob("images/*/packages.txt"))
 for root in owners.values():
     package_files.extend((root / "docker").rglob("packages.txt"))
+    for directory in root.glob("*/docker"):
+        package_files.extend(directory.rglob("packages.txt"))
 package_files.extend(tools_root.glob("*/docker/packages.txt"))
 for package_file in sorted(package_files):
     for line in package_file.read_text().splitlines():

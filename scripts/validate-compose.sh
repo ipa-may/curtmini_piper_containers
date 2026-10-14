@@ -23,6 +23,7 @@ for distro in ("jazzy",):
                     env = dict(os.environ, CONTAINER_ROS_DISTRO=distro,
                                RMW=rmw, DISPLAY=":0")
                     env.pop("CURTMINI_PIPER_TOOLS_SSH_AUTH", None)
+                    env.pop("CURTMINI_PIPER_IMAGE_SOURCE", None)
                     for key, (_, _, value) in settings.items():
                         env.pop(key, None)
                         if custom:

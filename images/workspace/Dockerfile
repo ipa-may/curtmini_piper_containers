@@ -8,13 +8,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV ROS_DISTRO=${ROS_DISTRO} DEBIAN_FRONTEND=noninteractive
 ENV RMW_IMPLEMENTATION=rmw_${RMW}_cpp
 COPY --from=simulation_source docker/ros-packages.txt /tmp/gazebo.txt
-COPY --from=robot_source docker/moveit-base/ros-packages.txt /tmp/moveit-base.txt
-COPY --from=robot_source docker/moveit-rviz/ros-packages.txt /tmp/rviz.txt
+COPY --from=robot_source curtmini_piper_moveit_config/docker/ros-packages.txt /tmp/moveit-base.txt
+COPY --from=robot_source curtmini_piper_moveit_config/docker/rviz-ros-packages.txt /tmp/rviz.txt
 COPY --from=tools_source curtmini_piper_moveitpy_example/docker/ros-packages.txt /tmp/moveitpy.txt
 COPY --from=tools_source curtmini_piper_moveit_action_client_example/docker/ros-packages.txt /tmp/moveit-action-client.txt
 COPY --from=tools_source curtmini_piper_nav_examples/docker/ros-packages.txt /tmp/nav-client.txt
 COPY --from=tools_source curtmini_piper_tag_tools/docker/ros-packages.txt /tmp/tag-pose.txt
-COPY --from=robot_source docker/navigation/ros-packages.txt /tmp/navigation.txt
+COPY --from=robot_source curtmini_piper_navigation/docker/ros-packages.txt /tmp/navigation.txt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       build-essential cmake git ca-certificates python3-yaml \

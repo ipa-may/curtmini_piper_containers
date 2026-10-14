@@ -1,4 +1,4 @@
 # Application GUI overrides, applied after compose.yaml.
 include:
   - ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}/docker/compose.gui.yaml
-  - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/docker/compose.gui.yaml
+  - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/compose.gui.yaml

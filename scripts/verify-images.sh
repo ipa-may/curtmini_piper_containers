@@ -23,6 +23,8 @@ docker image inspect "${image_prefix}-moveit-action-client:${image_tag}" >/dev/n
 docker image inspect "${image_prefix}-nav2-goal-client:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-tag-pose:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-teleop:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-description:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-moveit-config:${image_tag}" >/dev/null
 
 if [[ "${rmw}" == "zenoh" ]]; then
   docker image inspect \
@@ -70,6 +72,10 @@ docker run --rm "${image_prefix}-hardware:${image_tag}" \
   python3 -c "import agx_arm_ctrl.agx_arm_ctrl_single_node"
 docker run --rm "${image_prefix}-moveit-rviz:${image_tag}" \
   ros2 pkg prefix curtmini_piper_moveit_config
+docker run --rm "${image_prefix}-description:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_description
+docker run --rm "${image_prefix}-moveit-config:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_moveit_config
 docker run --rm "${image_prefix}-moveitpy:${image_tag}" \
   ros2 pkg prefix curtmini_piper_moveitpy_example
 docker run --rm "${image_prefix}-moveit-action-client:${image_tag}" \
@@ -88,7 +94,7 @@ docker run --rm "${image_prefix}-navigation:${image_tag}" \
 docker run --rm "${image_prefix}-navigation:${image_tag}" \
   ros2 launch curtmini_piper_navigation navigation.launch.py --show-args
 
-for image in gazebo hardware base-hardware sensors apriltag moveit-rviz moveitpy moveit-action-client nav2-goal-client tag-pose teleop navigation; do
+for image in gazebo hardware base-hardware sensors apriltag description moveit-config moveit-rviz moveitpy moveit-action-client nav2-goal-client tag-pose teleop navigation; do
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
     bash -c "test ! -d /opt/ws/src"
   docker run --rm "${image_prefix}-${image}:${image_tag}" \

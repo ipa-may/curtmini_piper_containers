@@ -48,10 +48,14 @@ Images are tagged `jazzy-<rmw>`, for example:
 | `curtmini-piper-teleop:jazzy-cyclonedds` | Keyboard teleoperation and ROS CLI |
 | `curtmini-piper-zenoh-router:jazzy-zenoh` | Robot-side Zenoh router |
 
-`curtmini_piper/docker/Dockerfile` produces six runtime targets: `hardware`
-(arm), `base-hardware`, `moveit-rviz`, `teleop`, `navigation`, and `sensors`. The arm and RViz
-targets share the robot build. Each package in `curtmini_piper_tools` owns its
-Dockerfile and Compose file. The MoveItPy image uses the robot's MoveIt RViz
+Each package in `curtmini_piper` owns a `docker/Dockerfile` and
+`docker/compose.yaml`; the repository root includes their services. Bringup owns
+the `hardware`, `base-hardware`, and `teleop` targets; MoveIt, navigation, and
+sensors own their corresponding runtime targets. Shared ROS, description, and
+MoveIt configuration images are explicit build dependencies. Their services
+have zero replicas and do not start runtime containers.
+Each package in `curtmini_piper_tools` also owns its Dockerfile and Compose file.
+The MoveItPy image uses the robot's MoveIt RViz
 image as its base, as does the C++ MoveIt action client. The Nav2 client and tag
 pose images use the ROS base image.
 
@@ -65,7 +69,7 @@ The middleware variants share one source branch and use ROS 2 Jazzy.
 
 The root `compose.yaml` includes the Compose files from:
 
-- `../rob4_fraunhofer_ws/src/curtmini_piper/docker/`
+- `../rob4_fraunhofer_ws/src/curtmini_piper/compose.yaml`
 - `../rob4_fraunhofer_ws/src/curtmini_piper_tools/compose.yaml`
 - `../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim/docker/`
 
@@ -81,7 +85,8 @@ specific key through an SSH host alias, set
 `CURTMINI_PIPER_TOOLS_SSH_AUTH=default=/absolute/path/to/private_key` in
 `.env` so BuildKit uses the same key for its canonical GitHub URL.
 Hardware's Python SDK revision lives
-in the robot repository's `docker/dependencies/jazzy-hardware-python.env`.
+in `curtmini_piper_bringup/docker/dependencies/jazzy-hardware-python.env`
+inside the robot repository.
 
 For example, a regular Gazebo image fetches the simulator and robot code from
 upstream `main`. It imports `curt_mini`, `agx_arm_urdf`, and `neo_gz_worlds`
@@ -109,6 +114,21 @@ regular image after its upstream code changes; a cached Git import may require
 Source manifests use a mixture of branches, tags, and commit SHAs. Base-image
 tags, branches, and apt packages can change.
 
+To test unpublished robot Dockerfiles or build a local hardware image, set
+`CURTMINI_PIPER_IMAGE_SOURCE` to the absolute robot checkout path. This changes
+all robot image build contexts, including their shared layers. It does not
+change the simulator/tools sources or select the workspace overlay:
+
+```bash
+CURTMINI_PIPER_IMAGE_SOURCE="$(realpath ../rob4_fraunhofer_ws/src/curtmini_piper)" \
+  docker compose build piper-bringup
+```
+
+During migration, use that override until the new package Dockerfiles have
+been published to the upstream branch. Deploy the robot and infrastructure
+changes together. The old `curtmini_piper/docker/compose.yaml` entry point is
+replaced by `curtmini_piper/compose.yaml`.
+
 ## Optional configuration
 
 The example selects regular application images with GUI support. Add
@@ -131,6 +151,7 @@ Compose already supplies defaults for the following optional overrides:
 | `CURT_MINI_SOURCE`, `CURTMINI_PIPER_SOURCE`, `AGX_ARM_URDF_SOURCE` | Alternate source checkout paths |
 | `CURTMINI_PIPER_GZ_SIM_SOURCE`, `NEO_GZ_WORLDS_SOURCE` | Alternate simulation checkout paths |
 | `CURTMINI_PIPER_TOOLS_SSH_AUTH` | SSH agent or key for the private upstream tools build |
+| `CURTMINI_PIPER_IMAGE_SOURCE` | Robot image build source: absolute local checkout or Git URL; defaults to upstream `main` |
 | `CONTAINER_INFRA_SOURCE`, `CURTMINI_PIPER_DESCRIPTION_CONFIG_DIR` | Shared build-script path and simulator geometry-config path |
 
 Inherit `DISPLAY` from the desktop session. Build and verification scripts read
@@ -164,8 +185,9 @@ docker compose -f compose.yaml -f compose.cyclonedds.yaml build moveit-rviz-sim
 docker compose -f compose.yaml -f compose.cyclonedds.yaml build moveitpy-sim
 ```
 
-The robot's test targets include `hardware-test`, `moveit-rviz-test`, and
-`teleop-test`. Adjust the paths above if your checkout layout differs.
+The robot's package test targets are exposed through its `compose.test.yaml`.
+See the [robot container guide](../rob4_fraunhofer_ws/src/curtmini_piper/doc/containers.md)
+for local build and test commands. Adjust the paths above if your checkout layout differs.
 `ROS_IMAGE` can override the `ros:jazzy-ros-base-noble` base image.
 
 An unchanged import layer can be cached even when its GitHub branch advances.

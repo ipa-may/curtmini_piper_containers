@@ -8,7 +8,7 @@ application definitions and adds shared configuration:
 | `compose.yaml` | Includes the application repositories' Compose files |
 | `compose.cyclonedds.yaml` | Configures CycloneDDS and mounts its configuration |
 | `compose.zenoh.yaml` | Configures Zenoh and starts the local router |
-| `compose.gui.yaml` | Includes each application's `docker/compose.gui.yaml` |
+| `compose.gui.yaml` | Includes each application's GUI aggregator or overlay |
 | `compose.workspace.yaml` | Adds the workspace builder and shared install mounts |
 
 The robot, simulator, and tools checkouts must exist before Compose can load
@@ -19,10 +19,22 @@ Paths inside included application files are resolved relative to those files.
 
 ## Application services
 
-`curtmini_piper/docker/compose.yaml` defines hardware, RealSense, RViz,
-teleop, navigation, and ROS CLI services. Its six runtime targets are
+`curtmini_piper/compose.yaml` includes package-owned `docker/compose.yaml`
+files for hardware, RealSense, RViz, teleop, navigation, and ROS CLI services.
+Its six runtime targets are
 `hardware` (arm), `base-hardware`, `moveit-rviz`, `teleop`, `navigation`, and
 `sensors`.
+
+Shared ROS, description, and MoveIt configuration images are declared by
+`piper-ros-base`, `piper-description`, and `piper-moveit-config`. They have
+zero replicas. Compose builds them automatically when a selected image
+needs them, without starting helper containers. Package GUI overrides are
+collected by `curtmini_piper/compose.gui.yaml`. The infrastructure continues to
+apply middleware configuration to the same public service names.
+
+Compose 2.24.4 or newer is required for the workspace overlay's `!override`
+build contexts. This prevents normal robot image dependencies from leaking
+into the independent workspace build.
 
 `curtmini_piper_tools/compose.yaml` includes one Compose file from each tools
 package. The MoveItPy example defines `moveitpy-sim` and `moveitpy-hardware`,
@@ -39,7 +51,7 @@ branches. Gazebo still reads the local `geometry.yaml` and
 `initial_state.yaml` mount settings at runtime. Local simulator code is built
 by the workspace workflow below.
 Compose still loads service definitions from the local checkouts, so edits to
-their `docker/compose.yaml` files can change commands, mounts, and build settings
+their package `docker/compose.yaml` files can change commands, mounts, and build settings
 for regular services. Physical camera mounts and navigation maps are local
 runtime inputs too.
 Gazebo is headless by default (`gui:=false`). It starts MoveIt and controllers;
@@ -92,8 +104,10 @@ restart affected services with the overlay. Gazebo and simulation tools use the
 development image; hardware services use the installation in their own images
 and do not mount the shared workspace installation.
 
-Without this overlay, application builds fetch their owning repository from
-upstream `main` and import dependencies from repository-owned manifests. See
+Without this overlay, application builds default to their owning repository's
+upstream `main` and import dependencies from repository-owned manifests.
+`CURTMINI_PIPER_IMAGE_SOURCE=/absolute/path/to/curtmini_piper` selects a local
+robot image build, including hardware, independently of the workspace overlay. See
 [source inputs](README.md#source-inputs) and
 [local workspace details](README.md#local-simulation-workspace).
 
@@ -112,6 +126,7 @@ Build and verification helper scripts resolve settings through Compose, honoring
 `.env` and shell overrides. `build-all.sh` builds the regular application images;
 `verify-simulation.sh` accepts extra `-f` options for the workspace overlay.
 
-Navigation services are part of the robot’s existing `docker/compose.yaml`.
+Navigation services belong to `curtmini_piper_navigation/docker/compose.yaml`,
+included by the robot root Compose file.
 They use the same middleware, workspace and GUI files as the other simulation
 services; no additional overlay is needed.

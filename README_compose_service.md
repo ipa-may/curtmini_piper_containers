@@ -33,7 +33,7 @@ and middleware services.
 in `compose.zenoh.yaml`. `gz-sim` is defined in the simulator repository.
 `moveitpy-*`, `moveit-action-client-*`, `tag-pose-sim`, and `nav2-goal-client` are defined in their
 packages' Compose files under `curtmini_piper_tools/`; the remaining application services
-are defined in `curtmini_piper/docker/compose.yaml`.
+are collected by `curtmini_piper/compose.yaml` from package-owned Compose files.
 
 ## Simulation
 

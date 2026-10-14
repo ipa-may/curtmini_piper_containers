@@ -2,7 +2,7 @@ name: curtmini-piper
 
 include:
   - ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}/docker/compose.yaml
-  - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/docker/compose.yaml
+  - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/compose.yaml
   - ${CURTMINI_PIPER_TOOLS_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_tools}/compose.yaml
 
 services:
