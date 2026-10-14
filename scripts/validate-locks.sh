@@ -25,6 +25,9 @@ owners = {
         "CURTMINI_PIPER_GZ_SIM_SOURCE",
         "../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim")).resolve(),
 }
+tools_root = (repo_root / os.environ.get(
+    "CURTMINI_PIPER_TOOLS_SOURCE",
+    "../rob4_fraunhofer_ws/src/curtmini_piper_tools")).resolve()
 required = {
     "curtmini_piper": {"curt_mini", "agx_arm_urdf", "agx_arm_ros", "candle_ros2", "openzenros2"},
     "curtmini_piper_gz_sim": {"curt_mini", "curtmini_piper", "agx_arm_urdf", "neo_gz_worlds"},
@@ -36,6 +39,8 @@ for distro in ("jazzy",):
         if not lock_file.is_file():
             lock_file = root / "dependencies.repos"
         data = yaml.safe_load(lock_file.read_text())
+        if owner == "curtmini_piper":
+            robot_sources = data["repositories"]
         repositories = {Path(key).name: value for key, value in data.get("repositories", {}).items()}
         if not repositories:
             raise SystemExit(f"No repositories in {lock_file}")
@@ -58,6 +63,16 @@ for distro in ("jazzy",):
                 )
             versions[name] = source
 
+    split_sources = {}
+    for part in ("arm", "base"):
+        split_file = owners["curtmini_piper"] / "docker/dependencies" / f"{part}.repos"
+        for name, entry in yaml.safe_load(split_file.read_text())["repositories"].items():
+            if name in split_sources and split_sources[name] != entry:
+                raise SystemExit(f"Inconsistent source in split manifests: {name}")
+            split_sources[name] = entry
+    if split_sources != robot_sources:
+        raise SystemExit("Arm and base Docker source manifests differ from dependencies.repos")
+
     python_lock = {}
     python_lock_file = owners["curtmini_piper"] / "docker/dependencies" / f"{distro}-hardware-python.env"
     for line in python_lock_file.read_text().splitlines():
@@ -74,13 +89,16 @@ required_stages = ("base", "dependencies", "builder", "test", "runtime")
 dockerfiles = list(repo_root.glob("images/*/Dockerfile"))
 for root in owners.values():
     dockerfiles.extend((root / "docker").rglob("Dockerfile"))
+dockerfiles.extend(tools_root.glob("*/docker/Dockerfile"))
 for dockerfile in sorted(dockerfiles):
     text = dockerfile.read_text()
-    stages = ("runtime",) if dockerfile.parent.name == "workspace" else required_stages
+    stages = ("runtime",) if dockerfile.parent.name in ("workspace", "apriltag") else required_stages
     if dockerfile == owners["curtmini_piper"] / "docker/Dockerfile":
-        stages = ("ros-base", "moveit-base", "robot-builder", "moveitpy-builder",
-                  "hardware-builder", "navigation-base", "navigation-builder", "navigation", "teleop", "moveit-rviz", "moveitpy", "hardware",
-                  "teleop-test", "moveit-rviz-test", "moveitpy-test", "hardware-test")
+        stages = ("ros-base", "moveit-base", "robot-builder",
+                  "hardware-builder", "base-hardware-builder", "navigation-base", "navigation-builder", "navigation", "teleop", "moveit-rviz", "hardware", "base-hardware",
+                  "teleop-test", "moveit-rviz-test", "hardware-test")
+    if dockerfile in tools_root.glob("*/docker/Dockerfile"):
+        stages = ("dependencies", "builder", "runtime")
     for stage in stages:
         if not re.search(rf"\bAS {stage}\s*$", text, re.IGNORECASE | re.MULTILINE):
             raise SystemExit(f"{dockerfile}: missing {stage} stage")
@@ -88,6 +106,7 @@ for dockerfile in sorted(dockerfiles):
 package_files = list(repo_root.glob("images/*/packages.txt"))
 for root in owners.values():
     package_files.extend((root / "docker").rglob("packages.txt"))
+package_files.extend(tools_root.glob("*/docker/packages.txt"))
 for package_file in sorted(package_files):
     for line in package_file.read_text().splitlines():
         if line.startswith("ros-"):

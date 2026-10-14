@@ -10,6 +10,9 @@ colcon --log-base /opt/ws/log build \
   --merge-install \
   --packages-up-to \
     curtmini_piper_gz_sim \
-    curtmini_piper_motion_examples \
+    curtmini_piper_moveitpy_example \
+    curtmini_piper_moveit_action_client_example \
+    curtmini_piper_tag_tools \
+    curtmini_piper_nav_examples \
     curtmini_piper_navigation \
   --cmake-args -DCMAKE_BUILD_TYPE=Release "$@"

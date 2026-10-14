@@ -6,6 +6,7 @@ x-workspace-image: &workspace-image
     additional_contexts:
       simulation_source: ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}
       robot_source: ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}
+      tools_source: ${CURTMINI_PIPER_TOOLS_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_tools}
     dockerfile: images/workspace/Dockerfile
     target: runtime
     args:
@@ -39,6 +40,11 @@ services:
         read_only: true
         bind: {create_host_path: false}
       - type: bind
+        source: ${CURTMINI_PIPER_TOOLS_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_tools}
+        target: /opt/ws/src/curtmini_piper_tools
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
         source: ${AGX_ARM_URDF_SOURCE:-../rob4_fraunhofer_ws/src/piper_driver/agx_arm_urdf}
         target: /opt/ws/src/agx_arm_urdf
         read_only: true
@@ -68,6 +74,21 @@ services:
       REQUIRE_WORKSPACE_INSTALL: "1"
     volumes: [*install]
   moveitpy-sim:
+    <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  moveit-action-client-sim:
+    <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  tag-pose-sim:
+    <<: *workspace-image
+    environment:
+      REQUIRE_WORKSPACE_INSTALL: "1"
+    volumes: [*install]
+  nav2-goal-client:
     <<: *workspace-image
     environment:
       REQUIRE_WORKSPACE_INSTALL: "1"

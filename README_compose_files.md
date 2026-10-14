@@ -5,27 +5,37 @@ application definitions and adds shared configuration:
 
 | File | Purpose |
 | --- | --- |
-| `compose.yaml` | Includes each application repository's `docker/compose.yaml` |
+| `compose.yaml` | Includes the application repositories' Compose files |
 | `compose.cyclonedds.yaml` | Configures CycloneDDS and mounts its configuration |
 | `compose.zenoh.yaml` | Configures Zenoh and starts the local router |
 | `compose.gui.yaml` | Includes each application's `docker/compose.gui.yaml` |
 | `compose.workspace.yaml` | Adds the workspace builder and shared install mounts |
 
-The robot and simulator checkouts must exist before Compose can load the includes.
-Their locations are selected by `CURTMINI_PIPER_SOURCE` and
-`CURTMINI_PIPER_GZ_SIM_SOURCE`, with defaults matching the project workspace.
+The robot, simulator, and tools checkouts must exist before Compose can load
+their includes. Their locations are selected by `CURTMINI_PIPER_SOURCE`,
+`CURTMINI_PIPER_GZ_SIM_SOURCE`, and `CURTMINI_PIPER_TOOLS_SOURCE`, with defaults
+matching the project workspace.
 Paths inside included application files are resolved relative to those files.
 
 ## Application services
 
-`curtmini_piper/docker/compose.yaml` defines hardware, RealSense, RViz, MoveItPy,
-teleop, navigation, and ROS CLI services. Its builds select one of six targets from
-`docker/Dockerfile`: `hardware`, `moveit-rviz`, `moveitpy`, `teleop`, `navigation`,
-or `sensors`.
+`curtmini_piper/docker/compose.yaml` defines hardware, RealSense, RViz,
+teleop, navigation, and ROS CLI services. Its six runtime targets are
+`hardware` (arm), `base-hardware`, `moveit-rviz`, `teleop`, `navigation`, and
+`sensors`.
+
+`curtmini_piper_tools/compose.yaml` includes one Compose file from each tools
+package. The MoveItPy example defines `moveitpy-sim` and `moveitpy-hardware`,
+and the C++ MoveIt client defines `moveit-action-client-sim` and
+`moveit-action-client-hardware`. The navigation example defines
+`nav2-goal-client`, and the tag package defines `tag-pose-sim`. Each package
+owns its Dockerfile and ROS package list. Both MoveIt clients build on the
+robot's MoveIt RViz image; the other two use a ROS base image. Build the MoveIt RViz image first; `scripts/build-all.sh`
+handles that order.
 
 `curtmini_piper_gz_sim/docker/compose.yaml` defines `gz-sim` and its Gazebo build.
-Regular application builds use the robot and simulator repositories' upstream
-`main` branches. Gazebo still reads the local `geometry.yaml` and
+Regular application builds use their owning repositories' upstream `main`
+branches. Gazebo still reads the local `geometry.yaml` and
 `initial_state.yaml` mount settings at runtime. Local simulator code is built
 by the workspace workflow below.
 Compose still loads service definitions from the local checkouts, so edits to
@@ -60,8 +70,8 @@ files are overlays and must be combined with the base configuration.
 
 ## Workspace overlay
 
-Use this optional workflow to compile simulation, navigation and MoveIt example packages
-from mounted local repositories into a shared install volume. Hardware bringup
+Use this optional workflow to compile simulation, navigation, and tools
+packages from mounted local repositories into a shared install volume. Hardware bringup
 and drivers are excluded. Build it before starting any service that uses the volume:
 
 ```bash
@@ -93,9 +103,9 @@ upstream `main` and import dependencies from repository-owned manifests. See
 precedence. An exported `COMPOSE_FILE` such as
 `compose.yaml:compose.cyclonedds.yaml:compose.gui.yaml` replaces repeated `-f`
 arguments. Export it in each terminal, or set it in `.env`. Explicit `-f`
-arguments override that selection. `.env.example` selects CycloneDDS, the
-workspace overlay, and GUI support; build `workspace-builder` before launching
-that configuration. For regular application images, omit `compose.workspace.yaml`.
+arguments override that selection. `.env.example` selects regular application
+images with CycloneDDS and GUI support. Add `compose.workspace.yaml` only when
+building local source changes with `workspace-builder`.
 Changing `RMW` also requires selecting its matching middleware overlay.
 
 Build and verification helper scripts resolve settings through Compose, honoring

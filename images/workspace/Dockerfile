@@ -10,7 +10,10 @@ ENV RMW_IMPLEMENTATION=rmw_${RMW}_cpp
 COPY --from=simulation_source docker/ros-packages.txt /tmp/gazebo.txt
 COPY --from=robot_source docker/moveit-base/ros-packages.txt /tmp/moveit-base.txt
 COPY --from=robot_source docker/moveit-rviz/ros-packages.txt /tmp/rviz.txt
-COPY --from=robot_source docker/moveitpy/ros-packages.txt /tmp/moveitpy.txt
+COPY --from=tools_source curtmini_piper_moveitpy_example/docker/ros-packages.txt /tmp/moveitpy.txt
+COPY --from=tools_source curtmini_piper_moveit_action_client_example/docker/ros-packages.txt /tmp/moveit-action-client.txt
+COPY --from=tools_source curtmini_piper_nav_examples/docker/ros-packages.txt /tmp/nav-client.txt
+COPY --from=tools_source curtmini_piper_tag_tools/docker/ros-packages.txt /tmp/tag-pose.txt
 COPY --from=robot_source docker/navigation/ros-packages.txt /tmp/navigation.txt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -18,7 +21,7 @@ RUN apt-get update \
       libusb-1.0-0-dev \
       python3-colcon-common-extensions python3-rosdep python3-vcstool \
       "ros-${ROS_DISTRO}-rmw-${RMW}-cpp" \
-    && cat /tmp/gazebo.txt /tmp/moveit-base.txt /tmp/rviz.txt /tmp/moveitpy.txt /tmp/navigation.txt \
+    && cat /tmp/gazebo.txt /tmp/moveit-base.txt /tmp/rviz.txt /tmp/moveitpy.txt /tmp/moveit-action-client.txt /tmp/navigation.txt /tmp/nav-client.txt /tmp/tag-pose.txt \
       | sort -u | sed "s|^|ros-${ROS_DISTRO}-|" \
       | xargs apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/*.txt

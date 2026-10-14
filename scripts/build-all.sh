@@ -10,10 +10,13 @@ load_compose_settings
 
 services=(
   gz-sim
-  real-bringup
+  base-bringup
+  piper-bringup
   realsense-base
+  apriltag-base
   moveit-rviz-sim
-  moveitpy-sim
+  nav2-goal-client
+  tag-pose-sim
   keyboard-teleop-sim
   nav2-sim
 )
@@ -26,3 +29,9 @@ docker compose \
   -f compose.yaml \
   -f "compose.${RMW}.yaml" \
   build "${services[@]}"
+
+# MoveItPy uses the locally built MoveIt RViz image as its base.
+docker compose \
+  -f compose.yaml \
+  -f "compose.${RMW}.yaml" \
+  build moveitpy-sim moveit-action-client-sim

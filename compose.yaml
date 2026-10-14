@@ -3,3 +3,42 @@ name: curtmini-piper
 include:
   - ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}/docker/compose.yaml
   - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/docker/compose.yaml
+  - ${CURTMINI_PIPER_TOOLS_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_tools}/compose.yaml
+
+services:
+  apriltag-base:
+    profiles: [apriltags]
+    image: ${IMAGE_PREFIX:-curtmini-piper}-apriltag:${CONTAINER_ROS_DISTRO:-jazzy}-${RMW:-cyclonedds}
+    build:
+      context: .
+      dockerfile: images/apriltag/Dockerfile
+      target: runtime
+      args:
+        ROS_DISTRO: ${CONTAINER_ROS_DISTRO:-jazzy}
+        ROS_IMAGE: ${ROS_IMAGE:-ros:${CONTAINER_ROS_DISTRO:-jazzy}-ros-base-noble}
+        RMW: ${RMW:-cyclonedds}
+    network_mode: host
+    init: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+      RMW_IMPLEMENTATION: rmw_${RMW:-cyclonedds}_cpp
+    command:
+      - ros2
+      - run
+      - apriltag_ros
+      - apriltag_node
+      - --ros-args
+      - -p
+      - family:=36h11
+      - -p
+      - size:=${APRILTAG_SIZE:-0.20}
+      - -p
+      - qos_profile:=default
+      - -p
+      - use_sim_time:=${APRILTAG_USE_SIM_TIME:-true}
+      - -r
+      - image_rect:=/base_camera/color/image_raw
+      - -r
+      - camera_info:=/base_camera/color/camera_info
+      - -r
+      - detections:=/base_camera/tag_detections

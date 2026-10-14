@@ -45,7 +45,15 @@ services:
     volumes:
       - *zenoh-volume
 
-  real-bringup:
+  apriltag-base:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  base-bringup:
     depends_on:
       <<: *zenoh-dependency
     environment:
@@ -102,6 +110,38 @@ services:
       - *zenoh-volume
 
   moveitpy-hardware:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveit-action-client-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  moveit-action-client-hardware:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  tag-pose-sim:
+    depends_on:
+      <<: *zenoh-dependency
+    environment:
+      <<: *zenoh-environment
+    volumes:
+      - *zenoh-volume
+
+  nav2-goal-client:
     depends_on:
       <<: *zenoh-dependency
     environment:

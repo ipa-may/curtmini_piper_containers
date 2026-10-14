@@ -1,5 +1,5 @@
 # CycloneDDS communication settings for the application services below.
-# Service names match those defined in the robot and simulator docker/compose.yaml
+# Service names match those defined in the robot, simulator, and tools Compose
 # files, which the root compose.yaml includes. This file adds settings to those
 # services; it does not start all of them or define their images and commands.
 #
@@ -21,6 +21,24 @@ x-cyclonedds-volume: &cyclonedds-volume
   read_only: true
 
 services:
+  apriltag-base:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  tag-pose-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  nav2-goal-client:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
   # Gazebo simulation: robot, simulated controllers and MoveIt server.
   gz-sim:
     environment:
@@ -28,8 +46,8 @@ services:
     volumes:
       - *cyclonedds-volume
 
-  # Real Curt Mini base and Piper arm: hardware drivers and MoveIt server.
-  real-bringup:
+  # Real Curt Mini base hardware; Piper arm runs in piper-bringup.
+  base-bringup:
     environment:
       <<: *cyclonedds-environment
     volumes:
@@ -47,7 +65,7 @@ services:
     volumes:
       - *cyclonedds-volume
 
-  # Real Piper arm only: hardware and MoveIt, without base, IMU or joystick.
+  # Real Piper arm and MoveIt, without base, IMU or joystick.
   piper-bringup:
     environment:
       <<: *cyclonedds-environment
@@ -61,7 +79,7 @@ services:
     volumes:
       - *cyclonedds-volume
 
-  # MoveIt RViz window connected to real-bringup or piper-bringup.
+  # MoveIt RViz window connected to piper-bringup.
   moveit-rviz-hardware:
     environment:
       <<: *cyclonedds-environment
@@ -77,6 +95,18 @@ services:
 
   # Python example for the real arm; plans only unless execution is enabled.
   moveitpy-hardware:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveit-action-client-sim:
+    environment:
+      <<: *cyclonedds-environment
+    volumes:
+      - *cyclonedds-volume
+
+  moveit-action-client-hardware:
     environment:
       <<: *cyclonedds-environment
     volumes:

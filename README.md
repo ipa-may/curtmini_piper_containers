@@ -35,17 +35,25 @@ Images are tagged `jazzy-<rmw>`, for example:
 | Image | Responsibility |
 | --- | --- |
 | `curtmini-piper-gazebo:jazzy-cyclonedds` | Gazebo, simulated controllers, and MoveIt |
-| `curtmini-piper-hardware:jazzy-cyclonedds` | Curt Mini and Piper hardware bringup with MoveIt |
+| `curtmini-piper-hardware:jazzy-cyclonedds` | Piper arm hardware and MoveIt |
+| `curtmini-piper-base-hardware:jazzy-cyclonedds` | Curt Mini base hardware, joystick, and IMU |
 | `curtmini-piper-sensors:jazzy-cyclonedds` | Two separately selectable physical D435i cameras |
+| `curtmini-piper-apriltag:jazzy-cyclonedds` | Optional base camera AprilTag detector |
 | `curtmini-piper-moveit-rviz:jazzy-cyclonedds` | Standalone MoveIt RViz client |
 | `curtmini-piper-moveitpy:jazzy-cyclonedds` | MoveItPy planning and execution examples |
+| `curtmini-piper-moveit-action-client:jazzy-cyclonedds` | C++ client for the running MoveIt server |
+| `curtmini-piper-nav2-goal-client:jazzy-cyclonedds` | Python client for Nav2 goal requests |
+| `curtmini-piper-tag-pose:jazzy-cyclonedds` | Observed AprilTag poses in `map` |
 | `curtmini-piper-navigation:jazzy-cyclonedds` | SLAM Toolbox, Nav2 and navigation RViz |
 | `curtmini-piper-teleop:jazzy-cyclonedds` | Keyboard teleoperation and ROS CLI |
 | `curtmini-piper-zenoh-router:jazzy-zenoh` | Robot-side Zenoh router |
 
-`curtmini_piper/docker/Dockerfile` produces six runtime targets: `hardware`,
-`moveit-rviz`, `moveitpy`, `teleop`, `navigation`, and `sensors`. They share the ROS base; the first three
-also share MoveIt dependencies and the common robot build. The original four targets have optional `<target>-test` stages.
+`curtmini_piper/docker/Dockerfile` produces six runtime targets: `hardware`
+(arm), `base-hardware`, `moveit-rviz`, `teleop`, `navigation`, and `sensors`. The arm and RViz
+targets share the robot build. Each package in `curtmini_piper_tools` owns its
+Dockerfile and Compose file. The MoveItPy image uses the robot's MoveIt RViz
+image as its base, as does the C++ MoveIt action client. The Nav2 client and tag
+pose images use the ROS base image.
 
 `curtmini_piper_gz_sim/docker/Dockerfile` and the infrastructure's Zenoh Dockerfile
 retain `base`, `dependencies`, `builder`, `test`, and `runtime` stages. The
@@ -58,11 +66,21 @@ The middleware variants share one source branch and use ROS 2 Jazzy.
 The root `compose.yaml` includes the Compose files from:
 
 - `../rob4_fraunhofer_ws/src/curtmini_piper/docker/`
+- `../rob4_fraunhofer_ws/src/curtmini_piper_tools/compose.yaml`
 - `../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim/docker/`
 
-Each owner maintains its Dockerfile, package lists, Compose services, and GUI
-settings. Regular image builds fetch the owning repository from upstream
-`main` and clone dependencies from its `dependencies.repos`. Hardware's Python SDK revision lives
+Each owner maintains its Dockerfile, package lists, and Compose services.
+Regular image builds fetch the owning repository from upstream `main`.
+The MoveItPy and C++ MoveIt client images build on the robot's published
+MoveIt RViz image. The Nav2 client and tag pose images use a ROS base image.
+The workspace overlay builds
+unpublished local tools source.
+The tools repository is private: regular tools builds use SSH authentication.
+An SSH agent with access to it works by default. If that machine selects a
+specific key through an SSH host alias, set
+`CURTMINI_PIPER_TOOLS_SSH_AUTH=default=/absolute/path/to/private_key` in
+`.env` so BuildKit uses the same key for its canonical GitHub URL.
+Hardware's Python SDK revision lives
 in the robot repository's `docker/dependencies/jazzy-hardware-python.env`.
 
 For example, a regular Gazebo image fetches the simulator and robot code from
@@ -79,8 +97,9 @@ Create local configuration without replacing an existing file:
 ```
 
 `.env` selects the distro, middleware, image names, runtime settings, and source
-paths used for Compose includes and workspace mounts. Both application checkouts
-must exist. For another directory layout, adjust `CURTMINI_PIPER_SOURCE` and
+paths used for Compose includes and workspace mounts. All three application
+checkouts must exist. For another directory layout, adjust
+`CURTMINI_PIPER_SOURCE`, `CURTMINI_PIPER_TOOLS_SOURCE`, and
 `CURTMINI_PIPER_GZ_SIM_SOURCE`, and set `CONTAINER_INFRA_SOURCE` to this
 infrastructure repository's absolute path for the shared build scripts.
 
@@ -92,16 +111,17 @@ tags, branches, and apt packages can change.
 
 ## Optional configuration
 
-The example selects the local simulation workspace with GUI support. Build
-`workspace-builder` before launching it. Explicit `-f` options select a different
-workflow regardless of `COMPOSE_FILE` in `.env`.
+The example selects regular application images with GUI support. Add
+`compose.workspace.yaml` only when building unpublished local source changes;
+see [local simulation workspace](#local-simulation-workspace). Explicit `-f`
+options select a different workflow regardless of `COMPOSE_FILE` in `.env`.
 
 Compose already supplies defaults for the following optional overrides:
 
 | Settings | Purpose |
 | --- | --- |
 | `CAN_PORT`, `LPMS_DEVICE`, `JOYSTICK_DEVICE` | Hardware interfaces |
-| `START_JOYSTICK`, `START_IMU` | Hardware launch switches |
+| `PUBLISH_BASE_DESCRIPTION` | Set `True` only when running `base-bringup` without `piper-bringup`; defaults to `False` for the full robot |
 | `CONTROL_ENABLED`, `FAST_MODE` | Piper command acceptance and streaming; both default to `true` |
 | `MOVEIT_PLAN_ONLY` | Plan without execution; defaults to `true` |
 | `LIBGL_ALWAYS_SOFTWARE` | RViz rendering fallback; defaults to `0` |
@@ -110,6 +130,7 @@ Compose already supplies defaults for the following optional overrides:
 | `ZENOH_ROUTER_CHECK_ATTEMPTS`, `SIM_CHECK_TIMEOUT` | Readiness timeouts |
 | `CURT_MINI_SOURCE`, `CURTMINI_PIPER_SOURCE`, `AGX_ARM_URDF_SOURCE` | Alternate source checkout paths |
 | `CURTMINI_PIPER_GZ_SIM_SOURCE`, `NEO_GZ_WORLDS_SOURCE` | Alternate simulation checkout paths |
+| `CURTMINI_PIPER_TOOLS_SSH_AUTH` | SSH agent or key for the private upstream tools build |
 | `CONTAINER_INFRA_SOURCE`, `CURTMINI_PIPER_DESCRIPTION_CONFIG_DIR` | Shared build-script path and simulator geometry-config path |
 
 Inherit `DISPLAY` from the desktop session. Build and verification scripts read
@@ -139,13 +160,11 @@ docker buildx build --build-arg ROS_DISTRO=jazzy --build-arg RMW=cyclonedds \
   --build-context container_common=./common --target test \
   -f "$sim_source/docker/Dockerfile" "$sim_source"
 
-robot_source=../rob4_fraunhofer_ws/src/curtmini_piper
-docker buildx build --build-arg ROS_DISTRO=jazzy --build-arg RMW=cyclonedds \
-  --build-context container_common=./common --target moveitpy-test \
-  -f "$robot_source/docker/Dockerfile" "$robot_source"
+docker compose -f compose.yaml -f compose.cyclonedds.yaml build moveit-rviz-sim
+docker compose -f compose.yaml -f compose.cyclonedds.yaml build moveitpy-sim
 ```
 
-The robot's other test targets are `hardware-test`, `moveit-rviz-test`, and
+The robot's test targets include `hardware-test`, `moveit-rviz-test`, and
 `teleop-test`. Adjust the paths above if your checkout layout differs.
 `ROS_IMAGE` can override the `ros:jazzy-ros-base-noble` base image.
 
@@ -162,8 +181,9 @@ Then recreate the service with the appropriate `up` command.
 
 `compose.workspace.yaml` mounts the local repositories into a
 `workspace-builder`. It builds `curtmini_piper_gz_sim`,
-`curtmini_piper_motion_examples`, `curtmini_piper_navigation`, and their dependencies, sharing the resulting
-install volume with Gazebo, simulation RViz, and simulation MoveItPy. Hardware
+`curtmini_piper_moveitpy_example`, `curtmini_piper_tag_tools`,
+`curtmini_piper_nav_examples`, `curtmini_piper_navigation`, and their dependencies,
+sharing the resulting install volume with Gazebo, simulation RViz, and tools. Hardware
 bringup and drivers are excluded; hardware services use their own images.
 
 Set optional checkout-path overrides in `.env` for a nonstandard layout, then build
@@ -182,6 +202,7 @@ The default source layout matches `project-docs/dependencies.repos`:
 rob4_fraunhofer_ws/src/
   curt_mini/
   curtmini_piper/
+  curtmini_piper_tools/
   piper_driver/agx_arm_urdf/
   curtmini_piper_simulation/
     curtmini_piper_gz_sim/
@@ -382,11 +403,13 @@ middleware overlay:
 docker compose \
   -f compose.yaml \
   -f "compose.${RMW}.yaml" \
-  --profile hardware up real-bringup
+  up base-bringup piper-bringup
 ```
 
-The service maps Candle USB, the LPMS serial device, and the joystick. It does
-not use `privileged: true`.
+`base-bringup` maps Candle USB, the LPMS serial device, and the joystick;
+`piper-bringup` uses the CAN interface. The Piper service publishes the full
+robot description, and the base service skips its base-only description.
+Neither service uses `privileged: true`.
 
 For only the Piper arm hardware, MoveIt, and RViz, use `piper-bringup`:
 
@@ -400,8 +423,8 @@ docker compose \
   up piper-bringup moveit-rviz-hardware
 ```
 
-This reuses the hardware image with the base, IMU, and joystick disabled,
-and requires only the host CAN interface configured above. No IMU or joystick
+This uses an arm-only hardware image and requires only the host CAN interface
+configured above. No IMU or joystick
 devices are mapped. The arm is automatically enabled by the launch defaults.
 For Zenoh, set `RMW=zenoh` and replace the middleware overlay with
 `compose.zenoh.yaml`. See [Piper arm only](README_compose_service.md#piper-arm-only)

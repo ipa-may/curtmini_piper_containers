@@ -82,7 +82,9 @@ This is the entrypoint of the `workspace-builder` service. It:
 1. Sources ROS itself, without sourcing an older workspace installation.
 2. Calls `workspace-sources.py` to prepare source dependencies.
 3. Runs `colcon build` for `curtmini_piper_gz_sim`,
-   `curtmini_piper_motion_examples` and `curtmini_piper_navigation`, and their dependencies.
+   `curtmini_piper_moveitpy_example`, `curtmini_piper_tag_tools`,
+   `curtmini_piper_nav_examples`, and `curtmini_piper_navigation`, and their
+   dependencies.
 
 The build includes robot descriptions, simulation controllers, and MoveIt
 configuration. It does not build hardware bringup or hardware drivers.

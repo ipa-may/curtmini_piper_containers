@@ -14,9 +14,14 @@ expected_rmw="rmw_${rmw}_cpp"
 
 docker image inspect "${image_prefix}-gazebo:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-hardware:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-base-hardware:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-sensors:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-apriltag:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-moveit-rviz:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-moveitpy:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-moveit-action-client:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-nav2-goal-client:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-tag-pose:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-teleop:${image_tag}" >/dev/null
 
 if [[ "${rmw}" == "zenoh" ]]; then
@@ -46,13 +51,17 @@ print("Both packaged worlds and their model assets are installed")
 PY
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   ros2 pkg prefix curtmini_piper_bringup
+docker run --rm "${image_prefix}-base-hardware:${image_tag}" \
+  ros2 pkg prefix curt_mini_bringup
 docker run --rm "${image_prefix}-sensors:${image_tag}" \
   ros2 pkg prefix curtmini_piper_sensors
 docker run --rm "${image_prefix}-sensors:${image_tag}" \
   ros2 pkg prefix realsense2_camera
+docker run --rm "${image_prefix}-apriltag:${image_tag}" \
+  ros2 pkg prefix apriltag_ros
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   python3 -c "import pyAgxArm"
-docker run --rm "${image_prefix}-hardware:${image_tag}" \
+docker run --rm "${image_prefix}-base-hardware:${image_tag}" \
   bash -c "test -f /opt/ws/install/lib/libipa_ros2_control.so"
 docker run --rm "${image_prefix}-hardware:${image_tag}" \
   ros2 pkg prefix agx_arm_ctrl
@@ -62,7 +71,13 @@ docker run --rm "${image_prefix}-hardware:${image_tag}" \
 docker run --rm "${image_prefix}-moveit-rviz:${image_tag}" \
   ros2 pkg prefix curtmini_piper_moveit_config
 docker run --rm "${image_prefix}-moveitpy:${image_tag}" \
-  ros2 pkg prefix curtmini_piper_motion_examples
+  ros2 pkg prefix curtmini_piper_moveitpy_example
+docker run --rm "${image_prefix}-moveit-action-client:${image_tag}" \
+  ros2 pkg executables curtmini_piper_moveit_action_client_example
+docker run --rm "${image_prefix}-tag-pose:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_tag_tools
+docker run --rm "${image_prefix}-nav2-goal-client:${image_tag}" \
+  ros2 pkg prefix curtmini_piper_nav_examples
 docker run --rm "${image_prefix}-teleop:${image_tag}" \
   ros2 pkg prefix teleop_twist_keyboard
 
@@ -73,7 +88,7 @@ docker run --rm "${image_prefix}-navigation:${image_tag}" \
 docker run --rm "${image_prefix}-navigation:${image_tag}" \
   ros2 launch curtmini_piper_navigation navigation.launch.py --show-args
 
-for image in gazebo hardware sensors moveit-rviz moveitpy teleop navigation; do
+for image in gazebo hardware base-hardware sensors apriltag moveit-rviz moveitpy moveit-action-client nav2-goal-client tag-pose teleop navigation; do
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
     bash -c "test ! -d /opt/ws/src"
   docker run --rm "${image_prefix}-${image}:${image_tag}" \

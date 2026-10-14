@@ -4,7 +4,7 @@ import os
 import subprocess
 import yaml
 
-local = {"agx_arm_urdf", "curt_mini", "curtmini_piper", "curtmini_piper_gz_sim",
+local = {"agx_arm_urdf", "curt_mini", "curtmini_piper", "curtmini_piper_tools", "curtmini_piper_gz_sim",
          "neo_gz_worlds"}
 repositories = {}
 for owner in ("curtmini_piper_gz_sim",):
