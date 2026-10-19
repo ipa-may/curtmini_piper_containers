@@ -18,6 +18,7 @@ services=(
   nav2-goal-client
   tag-pose-sim
   keyboard-teleop-sim
+  ros-cli
   nav2-sim
 )
 

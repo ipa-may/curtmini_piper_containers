@@ -80,8 +80,14 @@ class RobotComposeTest(unittest.TestCase):
                                              f"rmw_{rmw}_cpp")
                             self.assertTrue(any(v["target"].startswith("/etc/curtmini-piper/")
                                                 for v in service.get("volumes", [])), name)
-                        for name in ("moveit-rviz-sim", "moveit-rviz-hardware", "nav2-rviz-sim"):
+                        for name in ("moveit-rviz-sim", "moveit-rviz-hardware", "nav2-rviz-sim", "ros-cli"):
                             self.assertEqual("DISPLAY" in services[name]["environment"], gui)
+                        cli = services["ros-cli"]
+                        self.assertEqual(cli["build"]["target"], "ros-cli")
+                        self.assertEqual(cli["working_dir"], "/diagnostics")
+                        output = next(v for v in cli["volumes"] if v["target"] == "/diagnostics")
+                        self.assertFalse(output.get("read_only", False))
+                        self.assertFalse(output["bind"]["create_host_path"])
                         for name in ("base-bringup", "piper-bringup", "realsense-base", "realsense-tool"):
                             self.assertNotIn("REQUIRE_WORKSPACE_INSTALL", services[name]["environment"])
                         if workspace:
@@ -117,6 +123,9 @@ class RobotComposeTest(unittest.TestCase):
             self.assertNotIn(service["image"], runtime_images)
 
     def test_build_dependencies_and_zero_replica_helpers(self):
+        cli_targets = json.loads(compose(["build", "--print", "ros-cli"]))["target"]
+        self.assertEqual(set(cli_targets), {"piper-ros-base", "piper-description", "ros-cli"})
+        self.assertEqual(cli_targets["ros-cli"]["contexts"]["robot_description"], "target:piper-description")
         targets = json.loads(compose(["build", "--print", "piper-bringup"]))["target"]
         self.assertEqual(set(targets), HELPERS | {"piper-bringup"})
         self.assertEqual(targets["piper-bringup"]["contexts"]["moveit_config"], "target:piper-moveit-config")

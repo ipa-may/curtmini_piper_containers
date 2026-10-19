@@ -2,3 +2,12 @@
 include:
   - ${CURTMINI_PIPER_GZ_SIM_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper_simulation/curtmini_piper_gz_sim}/docker/compose.gui.yaml
   - ${CURTMINI_PIPER_SOURCE:-../rob4_fraunhofer_ws/src/curtmini_piper}/compose.gui.yaml
+
+services:
+  ros-cli:
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-1}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw

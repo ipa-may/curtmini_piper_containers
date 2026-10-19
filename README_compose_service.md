@@ -25,7 +25,7 @@ and middleware services.
 | `mapping-sim` | `mapping` | Builds a map using SLAM Toolbox |
 | `nav2-sim` | `navigation` | Localizes on a saved map and follows goal poses |
 | `nav2-rviz-sim` | `navigation-tools` | Displays maps and provides initial-pose, goal and cancel controls |
-| `ros-cli` | `tools` | Interactive ROS shell |
+| `ros-cli` | `tools` | Diagnostic shell with controller/TF tools, RViz, PlotJuggler, robot meshes, and persistent output |
 | `workspace-builder` | `workspace` | Builds simulation, navigation and MoveIt examples, excluding hardware bringup and drivers |
 | `zenoh-router` | none | Local Zenoh router added by `compose.zenoh.yaml` |
 
@@ -34,6 +34,35 @@ in `compose.zenoh.yaml`. `gz-sim` is defined in the simulator repository.
 `moveitpy-*`, `moveit-action-client-*`, `tag-pose-sim`, and `nav2-goal-client` are defined in their
 packages' Compose files under `curtmini_piper_tools/`; the remaining application services
 are collected by `curtmini_piper/compose.yaml` from package-owned Compose files.
+
+## Diagnostic shell
+
+Build the updated service from your local robot checkout:
+
+```bash
+CURTMINI_PIPER_IMAGE_SOURCE="$(realpath ../rob4_fraunhofer_ws/src/curtmini_piper)" \
+  docker compose build ros-cli
+docker compose run --rm ros-cli
+```
+
+Use the regular middleware overlay from `.env`. Set `ROS_CLI_UID` and
+`ROS_CLI_GID` there to `id -u` and `id -g`. The shell starts in `/diagnostics`,
+bound to `./diagnostics` on the host; PDFs, layouts, bags and preferences persist.
+For GUI tools, include `compose.gui.yaml` and authorize your user from the host
+desktop with `xhost +si:localuser:$(id -un)`.
+
+Inside the shell:
+
+```bash
+ros2 control list_controllers -c /piper/controller_manager
+rviz2 -d /diagnostics/rviz/robot.rviz
+ros2 run plotjuggler plotjuggler
+```
+
+See [Diagnosing the running system](../project-docs/docs/startup/remote-development/diagnostics.md)
+for TF PDFs, recording, GUI setup, and saved configurations. The diagnostic
+image includes the base and Piper description assets; it reads live robot
+description and TF topics from the backend.
 
 ## Simulation
 

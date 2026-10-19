@@ -128,10 +128,17 @@ services:
 
   # Interactive shell with ROS tools for inspecting nodes, topics and services.
   ros-cli:
+    user: "${ROS_CLI_UID:-1000}:${ROS_CLI_GID:-1000}"
+    working_dir: /diagnostics
     environment:
       <<: *cyclonedds-environment
     volumes:
       - *cyclonedds-volume
+      - type: bind
+        source: ${ROS_CLI_OUTPUT_DIR:-./diagnostics}
+        target: /diagnostics
+        bind:
+          create_host_path: false
 
   # SLAM Toolbox: builds a map from the simulated lidar while you drive.
   mapping-sim:

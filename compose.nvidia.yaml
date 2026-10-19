@@ -1,9 +1,17 @@
-# Optional NVIDIA rendering for Gazebo. Append after the GUI overlay:
+# Optional NVIDIA rendering for Gazebo and diagnostics. Append after the GUI overlay:
 # SIM_USE_APRILTAGS=true docker compose -f compose.yaml -f compose.cyclonedds.yaml \
 #   -f compose.gui.yaml -f compose.nvidia.yaml up -d --no-deps gz-sim
 # Requires the NVIDIA host driver and NVIDIA Container Toolkit configured for Docker.
 services:
   gz-sim:
+    gpus: all
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics,display
+      __NV_PRIME_RENDER_OFFLOAD: "1"
+      __GLX_VENDOR_LIBRARY_NAME: nvidia
+      LIBGL_ALWAYS_SOFTWARE: "0"
+
+  ros-cli:
     gpus: all
     environment:
       NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics,display

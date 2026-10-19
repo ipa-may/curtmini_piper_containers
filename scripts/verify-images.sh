@@ -23,6 +23,7 @@ docker image inspect "${image_prefix}-moveit-action-client:${image_tag}" >/dev/n
 docker image inspect "${image_prefix}-nav2-goal-client:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-tag-pose:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-teleop:${image_tag}" >/dev/null
+docker image inspect "${image_prefix}-ros-cli:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-description:${image_tag}" >/dev/null
 docker image inspect "${image_prefix}-moveit-config:${image_tag}" >/dev/null
 
@@ -94,7 +95,14 @@ docker run --rm "${image_prefix}-navigation:${image_tag}" \
 docker run --rm "${image_prefix}-navigation:${image_tag}" \
   ros2 launch curtmini_piper_navigation navigation.launch.py --show-args
 
-for image in gazebo hardware base-hardware sensors apriltag description moveit-config moveit-rviz moveitpy moveit-action-client nav2-goal-client tag-pose teleop navigation; do
+docker run --rm "${image_prefix}-ros-cli:${image_tag}" bash -c '
+  for package in ros2controlcli tf2_tools rviz2 plotjuggler_ros rqt_graph rqt_console ros2bag agx_arm_urdf curt_mini_description curtmini_piper_description; do
+    ros2 pkg prefix "$package" || exit 1
+  done
+  ros2 control --help >/dev/null && dot -V
+'
+
+for image in gazebo hardware base-hardware sensors apriltag description moveit-config moveit-rviz moveitpy moveit-action-client nav2-goal-client tag-pose teleop ros-cli navigation; do
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
     bash -c "test ! -d /opt/ws/src"
   docker run --rm "${image_prefix}-${image}:${image_tag}" \
